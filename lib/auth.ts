@@ -23,9 +23,10 @@ export const authService = {
             const { data: userData, error: userError } = await supabase
                 .from("users")
                 .select("*")
-                .eq("id", data.user.id)
+                .eq("email", data.user.email)
                 .single()
 
+            console.log(data);
             if (userError) throw userError
 
             return { user: data.user, userData }
@@ -34,35 +35,27 @@ export const authService = {
         return { user: null, userData: null }
     },
 
-    // Registrar usuario
-    async signUp(email: string, password: string, fullName: string, role: "student" | "teacher" = "student") {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    role: role,
-                },
-            },
-        })
-        console.log(error)
-        if (error) throw error
+    // Registrar usuarios
+    async signUp(
+        email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+) {
+    // Paso 1: Registro en auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password
+    });
 
-        // Crear registro en la tabla users
-        if (data.user) {
-            const { error: insertError } = await supabase.from("users").insert({
-                id: data.user.id,
-                email: data.user.email!,
-                full_name: fullName,
-                role: role,
-            })
+    if (authError) {
+        console.error('Error en el registro de autenticación:', authError.message);
+        throw authError;
+    }
 
-            if (insertError) throw insertError
-        }
-
-        return data
-    },
+    return authData;
+}
+,
 
     // Cerrar sesión
     async signOut() {

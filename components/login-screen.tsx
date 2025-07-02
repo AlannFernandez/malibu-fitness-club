@@ -22,7 +22,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
-  const [fullName, setFullName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +33,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     try {
       if (isSignUp) {
         // Registro
-        await authService.signUp(email, password, fullName)
+        await authService.signUp(email, password, firstName, lastName)
         setError("Registro exitoso! Revisa tu email para confirmar tu cuenta.")
         setIsSignUp(false)
       } else {
@@ -84,6 +85,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
+                  <>
                   <div className="space-y-2">
                     <Label htmlFor="fullName" className="text-gray-300">
                       Nombre Completo
@@ -92,12 +94,29 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                         id="fullName"
                         type="text"
                         placeholder="Juan Pérez"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
                         className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
                         required={isSignUp}
                     />
                   </div>
+
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-gray-300">
+                      Apellido
+                    </Label>
+                    <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="Pérez"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
+                        required={isSignUp}
+                    />
+                  </div>
+                  </>
               )}
 
               <div className="space-y-2">
@@ -144,7 +163,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
               <Button
                   type="submit"
-                  disabled={isLoading || !email || !password || (isSignUp && !fullName)}
+                  disabled={isLoading || !email || !password || (isSignUp && !firstName)}
                   className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold py-3 transition-all duration-200"
               >
                 {isLoading ? (
