@@ -1,15 +1,16 @@
 "use client"
 
-import {useState, useEffect} from "react"
-import {Button} from "@/components/ui/button"
-import {Input} from "@/components/ui/input"
-import {Label} from "@/components/ui/label"
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
-import {Badge} from "@/components/ui/badge"
-import {Progress} from "@/components/ui/progress"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
-import {Alert, AlertDescription} from "@/components/ui/alert"
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
     ArrowLeft,
     User,
@@ -18,7 +19,6 @@ import {
     X,
     Calendar,
     Scale,
-    Ruler,
     Activity,
     Heart,
     Plus,
@@ -68,7 +68,7 @@ interface MembershipInfo {
     days_remaining: number
 }
 
-export default function ProfileScreen({onBack, onLogout, userData}: ProfileScreenProps) {
+export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScreenProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -78,6 +78,8 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
         full_name: userData?.full_name || "",
         phone: userData?.phone || "",
         email: userData?.email || "",
+        gender: userData?.gender || "",
+        birth_date: userData?.birth_date || "",
     })
 
     // Body measurements
@@ -113,12 +115,6 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
     const loadProfileData = async () => {
         try {
             // MOCK: Cargar mediciones corporales
-            // const { data: measurementsData } = await supabase
-            //   .from("body_measurements")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .order("measurement_date", { ascending: false })
-
             const savedMeasurements = localStorage.getItem(`measurements_${userData.id}`)
             if (savedMeasurements) {
                 setMeasurements(JSON.parse(savedMeasurements))
@@ -159,12 +155,6 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
             }
 
             // MOCK: Cargar objetivos
-            // const { data: goalsData } = await supabase
-            //   .from("user_goals")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .order("created_at", { ascending: false })
-
             const savedGoals = localStorage.getItem(`goals_${userData.id}`)
             if (savedGoals) {
                 setGoals(JSON.parse(savedGoals))
@@ -174,10 +164,10 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                     {
                         id: "1",
                         goal_type: "weight_loss",
-                        target_value: 70,
+                        target_value: 80,
                         current_value: 74.2,
                         unit: "kg",
-                        target_date: "2024-06-01",
+                        target_date: "2026-06-01",
                         status: "active",
                         notes: "Perder peso para el verano",
                     },
@@ -197,22 +187,26 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
             }
 
             // MOCK: Cargar información de membresía
-            // const { data: membershipData } = await supabase
-            //   .from("memberships")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .eq("status", "active")
-            //   .single()
-
             const mockMembership: MembershipInfo = {
                 id: "1",
                 status: "active",
-                start_date: "2025-07-01",
-                end_date: "2025-07-31",
-                monthly_fee: 25000,
-                days_remaining: 28,
+                start_date: "2024-01-01",
+                end_date: "2024-12-31",
+                monthly_fee: 50,
+                days_remaining: 45,
             }
             setMembershipInfo(mockMembership)
+
+            // Cargar datos adicionales del perfil desde localStorage si existen
+            const savedProfile = localStorage.getItem(`profile_${userData.id}`)
+            if (savedProfile) {
+                const parsedProfile = JSON.parse(savedProfile)
+                setProfileData((prev) => ({
+                    ...prev,
+                    ...parsedProfile,
+                    email: userData?.email || prev.email, // El email siempre viene del userData
+                }))
+            }
         } catch (error) {
             console.error("Error loading profile data:", error)
         }
@@ -229,6 +223,8 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
             //   .update({
             //     full_name: profileData.full_name,
             //     phone: profileData.phone,
+            //     gender: profileData.gender,
+            //     birth_date: profileData.birth_date,
             //     updated_at: new Date().toISOString()
             //   })
             //   .eq("id", userData.id)
@@ -238,10 +234,21 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
             // Simular delay de red
             await new Promise((resolve) => setTimeout(resolve, 1000))
 
-            setMessage({type: "success", text: "Perfil actualizado correctamente"})
+            // Guardar en localStorage
+            localStorage.setItem(
+                `profile_${userData.id}`,
+                JSON.stringify({
+                    full_name: profileData.full_name,
+                    phone: profileData.phone,
+                    gender: profileData.gender,
+                    birth_date: profileData.birth_date,
+                }),
+            )
+
+            setMessage({ type: "success", text: "Perfil actualizado correctamente" })
             setIsEditing(false)
         } catch (error: any) {
-            setMessage({type: "error", text: "Error al actualizar el perfil"})
+            setMessage({ type: "error", text: "Error al actualizar el perfil" })
         } finally {
             setIsLoading(false)
         }
@@ -249,7 +256,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
 
     const handleAddMeasurement = async () => {
         if (!newMeasurement.weight || !newMeasurement.height) {
-            setMessage({type: "error", text: "Peso y altura son obligatorios"})
+            setMessage({ type: "error", text: "Peso y altura son obligatorios" })
             return
         }
 
@@ -272,16 +279,6 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 notes: newMeasurement.notes || "",
             }
 
-            // MOCK: Guardar en base de datos
-            // const { error } = await supabase
-            //   .from("body_measurements")
-            //   .insert({
-            //     user_id: userData.id,
-            //     ...measurementToAdd
-            //   })
-
-            // if (error) throw error
-
             // Simular delay de red
             await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -297,9 +294,9 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 measurement_date: new Date().toISOString().split("T")[0],
             })
             setShowAddMeasurement(false)
-            setMessage({type: "success", text: "Medición agregada correctamente"})
+            setMessage({ type: "success", text: "Medición agregada correctamente" })
         } catch (error: any) {
-            setMessage({type: "error", text: "Error al agregar la medición"})
+            setMessage({ type: "error", text: "Error al agregar la medición" })
         } finally {
             setIsLoading(false)
         }
@@ -307,7 +304,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
 
     const handleAddGoal = async () => {
         if (!newGoal.target_value || !newGoal.target_date) {
-            setMessage({type: "error", text: "Valor objetivo y fecha son obligatorios"})
+            setMessage({ type: "error", text: "Valor objetivo y fecha son obligatorios" })
             return
         }
 
@@ -326,16 +323,6 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 notes: newGoal.notes || "",
             }
 
-            // MOCK: Guardar en base de datos
-            // const { error } = await supabase
-            //   .from("user_goals")
-            //   .insert({
-            //     user_id: userData.id,
-            //     ...goalToAdd
-            //   })
-
-            // if (error) throw error
-
             // Simular delay de red
             await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -352,9 +339,9 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 status: "active",
             })
             setShowAddGoal(false)
-            setMessage({type: "success", text: "Objetivo agregado correctamente"})
+            setMessage({ type: "success", text: "Objetivo agregado correctamente" })
         } catch (error: any) {
-            setMessage({type: "error", text: "Error al agregar el objetivo"})
+            setMessage({ type: "error", text: "Error al agregar el objetivo" })
         } finally {
             setIsLoading(false)
         }
@@ -366,37 +353,64 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
     }
 
     const getBMICategory = (bmi: number) => {
-        if (bmi < 18.5) return {category: "Bajo peso", color: "text-blue-400"}
-        if (bmi < 25) return {category: "Normal", color: "text-green-400"}
-        if (bmi < 30) return {category: "Sobrepeso", color: "text-yellow-400"}
-        return {category: "Obesidad", color: "text-red-400"}
+        if (bmi < 18.5) return { category: "Bajo peso", color: "text-blue-400" }
+        if (bmi < 25) return { category: "Normal", color: "text-green-400" }
+        if (bmi < 30) return { category: "Sobrepeso", color: "text-yellow-400" }
+        return { category: "Obesidad", color: "text-red-400" }
     }
 
     const getGoalProgress = (goal: UserGoal) => {
-        const progress = (goal.current_value / goal.target_value) * 100
-        return Math.min(progress, 100)
+        if (goal.goal_type === "weight_loss") {
+            const totalToLose = goal.current_value - goal.target_value
+            const currentWeight = measurements.length > 0 ? measurements[0].weight : goal.current_value
+            const currentLoss = goal.current_value - currentWeight
+            return Math.min((currentLoss / totalToLose) * 100, 100)
+        } else if (goal.goal_type === "weight_gain") {
+            const totalToGain = goal.target_value - goal.current_value
+            const currentWeight = measurements.length > 0 ? measurements[0].weight : goal.current_value
+            const currentGain = currentWeight - goal.current_value
+            return Math.min((currentGain / totalToGain) * 100, 100)
+        }
+        return Math.min((goal.current_value / goal.target_value) * 100, 100)
     }
 
-    const latestMeasurement = measurements[0]
-    const bmi = latestMeasurement ? calculateBMI(latestMeasurement.weight, latestMeasurement.height) : 0
-    const bmiInfo = getBMICategory(bmi)
+    const getDaysUntilGoal = (targetDate: string) => {
+        const today = new Date()
+        const target = new Date(targetDate)
+        const diffTime = target.getTime() - today.getTime()
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays
+    }
+
+    const calculateAge = (birthDate: string) => {
+        if (!birthDate) return null
+        const today = new Date()
+        const birth = new Date(birthDate)
+        let age = today.getFullYear() - birth.getFullYear()
+        const monthDiff = today.getMonth() - birth.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--
+        }
+        return age
+    }
+
+    const latestMeasurement = measurements.length > 0 ? measurements[0] : null
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
-            {/* Header */}
+        <div className="min-h-screen bg-gray-950 text-white pb-20">
+            {/* Header simplificado */}
             <div className="bg-gray-900 border-b border-gray-800 p-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-400 hover:text-white">
-                        <ArrowLeft className="w-5 h-5"/>
+                        <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div className="flex items-center gap-3">
-                        <div
-                            className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-white"/>
+                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold">{profileData.full_name}</h1>
-                            <p className="text-gray-400 text-sm">{profileData.email}</p>
+                            <h1 className="text-xl font-bold">Mi Perfil</h1>
+                            <p className="text-gray-400 text-sm">Información personal y objetivos</p>
                         </div>
                     </div>
                 </div>
@@ -406,9 +420,14 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 {/* Message Alert */}
                 {message && (
                     <Alert
-                        className={`${message.type === "success" ? "border-green-600 bg-green-900/20" : "border-red-600 bg-red-900/20"}`}
+                        className={`${message.type === "error" ? "border-red-500 bg-red-500/10" : "border-green-500 bg-green-500/10"}`}
                     >
-                        <AlertDescription className={message.type === "success" ? "text-green-400" : "text-red-400"}>
+                        {message.type === "error" ? (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
+                        <AlertDescription className={message.type === "error" ? "text-red-400" : "text-green-400"}>
                             {message.text}
                         </AlertDescription>
                     </Alert>
@@ -417,108 +436,201 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                 {/* Tabs */}
                 <Tabs defaultValue="profile" className="w-full">
                     <TabsList className="grid w-full grid-cols-4 bg-gray-900">
-                        <TabsTrigger value="profile"
-                                     className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-white">
+                        <TabsTrigger value="profile" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Perfil
                         </TabsTrigger>
-                        <TabsTrigger value="measurements"
-                                     className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-white">
-                            Mediciones
+                        <TabsTrigger value="measurements" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
+                            Medidas
                         </TabsTrigger>
-                        <TabsTrigger value="goals"
-                                     className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-white">
+                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Objetivos
                         </TabsTrigger>
-                        <TabsTrigger value="membership"
-                                     className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-white">
+                        <TabsTrigger value="membership" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Membresía
                         </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="profile" className="space-y-4">
+                        {/* Profile Info */}
                         <Card className="bg-gray-900 border-gray-800">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-white flex items-center gap-2">
-                                        <User className="w-5 h-5 text-blue-400"/>
+                                        <User className="w-5 h-5 text-purple-400" />
                                         Información Personal
                                     </CardTitle>
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="sm"
                                         onClick={() => setIsEditing(!isEditing)}
-                                        className="border-gray-600"
+                                        className="text-gray-400 hover:text-white"
                                     >
-                                        {isEditing ? <X className="w-4 h-4"/> : <Edit3 className="w-4 h-4"/>}
-                                        {isEditing ? "Cancelar" : "Editar"}
+                                        {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
                                     </Button>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-gray-300">Nombre Completo</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={profileData.full_name}
-                                            onChange={(e) => setProfileData({
-                                                ...profileData,
-                                                full_name: e.target.value
-                                            })}
-                                            className="bg-gray-800 border-gray-700 text-white"
-                                        />
-                                    ) : (
-                                        <p className="text-white p-2 bg-gray-800 rounded">{profileData.full_name}</p>
-                                    )}
+                                    <Label htmlFor="full_name" className="text-gray-300">
+                                        Nombre Completo
+                                    </Label>
+                                    <Input
+                                        id="full_name"
+                                        value={profileData.full_name}
+                                        onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                                        disabled={!isEditing}
+                                        className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-gray-300">Teléfono</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={profileData.phone}
-                                            onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                                            className="bg-gray-800 border-gray-700 text-white"
-                                            placeholder="Número de teléfono"
-                                        />
-                                    ) : (
-                                        <p className="text-white p-2 bg-gray-800 rounded">{profileData.phone || "No especificado"}</p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="text-gray-300">Email</Label>
-                                    <p className="text-gray-400 p-2 bg-gray-800 rounded">{profileData.email}</p>
+                                    <Label htmlFor="email" className="text-gray-300">
+                                        Email
+                                    </Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={profileData.email}
+                                        disabled
+                                        className="bg-gray-800 border-gray-700 text-white opacity-60"
+                                    />
                                     <p className="text-xs text-gray-500">El email no se puede modificar</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className="text-gray-300">
+                                        Teléfono
+                                    </Label>
+                                    <Input
+                                        id="phone"
+                                        value={profileData.phone}
+                                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                                        disabled={!isEditing}
+                                        className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"
+                                        placeholder="Número de teléfono"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gender" className="text-gray-300">
+                                            Género
+                                        </Label>
+                                        {isEditing ? (
+                                            <Select
+                                                value={profileData.gender}
+                                                onValueChange={(value) => setProfileData({ ...profileData, gender: value })}
+                                            >
+                                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                                                    <SelectValue placeholder="Seleccionar género" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-gray-800 border-gray-700">
+                                                    <SelectItem value="masculino" className="text-white hover:bg-gray-700">
+                                                        Masculino
+                                                    </SelectItem>
+                                                    <SelectItem value="femenino" className="text-white hover:bg-gray-700">
+                                                        Femenino
+                                                    </SelectItem>
+                                                    <SelectItem value="otro" className="text-white hover:bg-gray-700">
+                                                        Otro
+                                                    </SelectItem>
+                                                    <SelectItem value="prefiero_no_decir" className="text-white hover:bg-gray-700">
+                                                        Prefiero no decir
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white">
+                                                {profileData.gender ? (
+                                                    profileData.gender === "masculino" ? (
+                                                        "Masculino"
+                                                    ) : profileData.gender === "femenino" ? (
+                                                        "Femenino"
+                                                    ) : profileData.gender === "otro" ? (
+                                                        "Otro"
+                                                    ) : profileData.gender === "prefiero_no_decir" ? (
+                                                        "Prefiero no decir"
+                                                    ) : (
+                                                        profileData.gender
+                                                    )
+                                                ) : (
+                                                    <span className="text-gray-500">No especificado</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="birth_date" className="text-gray-300">
+                                            Fecha de Nacimiento
+                                        </Label>
+                                        <Input
+                                            id="birth_date"
+                                            type="date"
+                                            value={profileData.birth_date}
+                                            onChange={(e) => setProfileData({ ...profileData, birth_date: e.target.value })}
+                                            disabled={!isEditing}
+                                            className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"
+                                        />
+                                        {profileData.birth_date && (
+                                            <p className="text-xs text-gray-400">Edad: {calculateAge(profileData.birth_date)} años</p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {isEditing && (
                                     <Button
                                         onClick={handleSaveProfile}
                                         disabled={isLoading}
-                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                        className="w-full bg-purple-600 hover:bg-purple-700"
                                     >
-                                        <Save className="w-4 h-4 mr-2"/>
-                                        {isLoading ? "Guardando..." : "Guardar Cambios"}
+                                        {isLoading ? (
+                                            "Guardando..."
+                                        ) : (
+                                            <>
+                                                <Save className="w-4 h-4 mr-2" />
+                                                Guardar Cambios
+                                            </>
+                                        )}
                                     </Button>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* BMI Card */}
+                        {/* Quick Stats */}
                         {latestMeasurement && (
                             <Card className="bg-gray-900 border-gray-800">
                                 <CardHeader>
                                     <CardTitle className="text-white flex items-center gap-2">
-                                        <Activity className="w-5 h-5 text-green-400"/>
-                                        Índice de Masa Corporal (IMC)
+                                        <Activity className="w-5 h-5 text-green-400" />
+                                        Estadísticas Actuales
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-center space-y-2">
-                                        <div className="text-3xl font-bold text-white">{bmi.toFixed(1)}</div>
-                                        <div className={`text-lg font-medium ${bmiInfo.color}`}>{bmiInfo.category}</div>
-                                        <div className="text-sm text-gray-400">
-                                            Basado en {latestMeasurement.weight}kg y {latestMeasurement.height}cm
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="text-center">
+                                            <p className="text-2xl font-bold text-white">{latestMeasurement.weight} kg</p>
+                                            <p className="text-gray-400 text-sm">Peso</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-2xl font-bold text-white">{latestMeasurement.height} cm</p>
+                                            <p className="text-gray-400 text-sm">Altura</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-2xl font-bold text-white">
+                                                {calculateBMI(latestMeasurement.weight, latestMeasurement.height).toFixed(1)}
+                                            </p>
+                                            <p className="text-gray-400 text-sm">IMC</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p
+                                                className={`text-sm font-medium ${
+                                                    getBMICategory(calculateBMI(latestMeasurement.weight, latestMeasurement.height)).color
+                                                }`}
+                                            >
+                                                {getBMICategory(calculateBMI(latestMeasurement.weight, latestMeasurement.height)).category}
+                                            </p>
+                                            <p className="text-gray-400 text-sm">Categoría</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -527,385 +639,328 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                     </TabsContent>
 
                     <TabsContent value="measurements" className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-white">Mediciones Corporales</h3>
-                            <Dialog open={showAddMeasurement} onOpenChange={setShowAddMeasurement}>
-                                <DialogTrigger asChild>
-                                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                        <Plus className="w-4 h-4 mr-2"/>
-                                        Agregar
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Nueva Medición</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Peso (kg) *</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={newMeasurement.weight || ""}
-                                                    onChange={(e) =>
-                                                        setNewMeasurement({
-                                                            ...newMeasurement,
-                                                            weight: Number.parseFloat(e.target.value)
-                                                        })
-                                                    }
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Altura (cm) *</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={newMeasurement.height || ""}
-                                                    onChange={(e) =>
-                                                        setNewMeasurement({
-                                                            ...newMeasurement,
-                                                            height: Number.parseFloat(e.target.value)
-                                                        })
-                                                    }
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Grasa Corporal (%)</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={newMeasurement.body_fat_percentage || ""}
-                                                    onChange={(e) =>
-                                                        setNewMeasurement({
-                                                            ...newMeasurement,
-                                                            body_fat_percentage: Number.parseFloat(e.target.value),
-                                                        })
-                                                    }
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Masa Muscular (kg)</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={newMeasurement.muscle_mass || ""}
-                                                    onChange={(e) =>
-                                                        setNewMeasurement({
-                                                            ...newMeasurement,
-                                                            muscle_mass: Number.parseFloat(e.target.value)
-                                                        })
-                                                    }
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                        </div>
-
+                        {/* Add Measurement Button */}
+                        <Dialog open={showAddMeasurement} onOpenChange={setShowAddMeasurement}>
+                            <DialogTrigger asChild>
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Agregar Medición
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                <DialogHeader>
+                                    <DialogTitle>Nueva Medición Corporal</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-gray-300">Fecha</Label>
+                                            <Label htmlFor="weight">Peso (kg) *</Label>
                                             <Input
-                                                type="date"
-                                                value={newMeasurement.measurement_date}
-                                                onChange={(e) => setNewMeasurement({
-                                                    ...newMeasurement,
-                                                    measurement_date: e.target.value
-                                                })}
-                                                className="bg-gray-800 border-gray-700 text-white"
+                                                id="weight"
+                                                type="number"
+                                                step="0.1"
+                                                value={newMeasurement.weight || ""}
+                                                onChange={(e) =>
+                                                    setNewMeasurement({ ...newMeasurement, weight: Number.parseFloat(e.target.value) })
+                                                }
+                                                className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
-
                                         <div className="space-y-2">
-                                            <Label className="text-gray-300">Notas</Label>
+                                            <Label htmlFor="height">Altura (cm) *</Label>
                                             <Input
-                                                value={newMeasurement.notes || ""}
-                                                onChange={(e) => setNewMeasurement({
-                                                    ...newMeasurement,
-                                                    notes: e.target.value
-                                                })}
-                                                className="bg-gray-800 border-gray-700 text-white"
-                                                placeholder="Notas opcionales"
+                                                id="height"
+                                                type="number"
+                                                value={newMeasurement.height || ""}
+                                                onChange={(e) =>
+                                                    setNewMeasurement({ ...newMeasurement, height: Number.parseFloat(e.target.value) })
+                                                }
+                                                className="bg-gray-800 border-gray-700"
                                             />
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={handleAddMeasurement}
-                                                disabled={isLoading}
-                                                className="flex-1 bg-green-600 hover:bg-green-700"
-                                            >
-                                                {isLoading ? "Guardando..." : "Guardar"}
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setShowAddMeasurement(false)}
-                                                className="border-gray-600 text-black"
-                                            >
-                                                Cancelar
-                                            </Button>
                                         </div>
                                     </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-
-                        <div className="space-y-4">
-                            {measurements.map((measurement) => (
-                                <Card key={measurement.id} className="bg-gray-900 border-gray-800">
-                                    <CardContent className="p-4">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="text-sm text-gray-400">
-                                                {new Date(measurement.measurement_date).toLocaleDateString()}
-                                            </div>
-                                            <Badge variant="outline" className="border-blue-600 text-blue-400">
-                                                IMC: {calculateBMI(measurement.weight, measurement.height).toFixed(1)}
-                                            </Badge>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="body_fat">% Grasa Corporal</Label>
+                                            <Input
+                                                id="body_fat"
+                                                type="number"
+                                                step="0.1"
+                                                value={newMeasurement.body_fat_percentage || ""}
+                                                onChange={(e) =>
+                                                    setNewMeasurement({
+                                                        ...newMeasurement,
+                                                        body_fat_percentage: Number.parseFloat(e.target.value),
+                                                    })
+                                                }
+                                                className="bg-gray-800 border-gray-700"
+                                            />
                                         </div>
-
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <Scale className="w-4 h-4 text-blue-400"/>
-                                                <span className="text-gray-300">Peso:</span>
-                                                <span className="text-white font-medium">{measurement.weight} kg</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Ruler className="w-4 h-4 text-green-400"/>
-                                                <span className="text-gray-300">Altura:</span>
-                                                <span className="text-white font-medium">{measurement.height} cm</span>
-                                            </div>
-                                            {measurement.body_fat_percentage && measurement.body_fat_percentage > 0 && (
-                                                <div className="flex items-center gap-2">
-                                                    <Activity className="w-4 h-4 text-yellow-400"/>
-                                                    <span className="text-gray-300">Grasa:</span>
-                                                    <span
-                                                        className="text-white font-medium">{measurement.body_fat_percentage}%</span>
-                                                </div>
-                                            )}
-                                            {measurement.muscle_mass && measurement.muscle_mass > 0 && (
-                                                <div className="flex items-center gap-2">
-                                                    <Heart className="w-4 h-4 text-red-400"/>
-                                                    <span className="text-gray-300">Músculo:</span>
-                                                    <span
-                                                        className="text-white font-medium">{measurement.muscle_mass} kg</span>
-                                                </div>
-                                            )}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="muscle_mass">Masa Muscular (kg)</Label>
+                                            <Input
+                                                id="muscle_mass"
+                                                type="number"
+                                                step="0.1"
+                                                value={newMeasurement.muscle_mass || ""}
+                                                onChange={(e) =>
+                                                    setNewMeasurement({ ...newMeasurement, muscle_mass: Number.parseFloat(e.target.value) })
+                                                }
+                                                className="bg-gray-800 border-gray-700"
+                                            />
                                         </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="measurement_date">Fecha</Label>
+                                        <Input
+                                            id="measurement_date"
+                                            type="date"
+                                            value={newMeasurement.measurement_date}
+                                            onChange={(e) => setNewMeasurement({ ...newMeasurement, measurement_date: e.target.value })}
+                                            className="bg-gray-800 border-gray-700"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={handleAddMeasurement}
+                                            disabled={isLoading}
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            {isLoading ? "Guardando..." : "Guardar"}
+                                        </Button>
+                                        <Button variant="ghost" onClick={() => setShowAddMeasurement(false)} className="flex-1 bg-red-600 hover:bg-red-700 hover:text-white">
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
 
-                                        {measurement.notes && (
-                                            <div
-                                                className="mt-3 p-2 bg-gray-800 rounded text-sm text-gray-300">{measurement.notes}</div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                        {/* Measurements History */}
+                        {measurements.length > 0 ? (
+                            <div className="space-y-4">
+                                {measurements.map((measurement) => (
+                                    <Card key={measurement.id} className="bg-gray-900 border-gray-800">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Scale className="w-5 h-5 text-blue-400" />
+                                                    <span className="text-white font-medium">
+                            {new Date(measurement.measurement_date).toLocaleDateString("es-ES")}
+                          </span>
+                                                </div>
+                                                <Badge variant="secondary" className="bg-gray-700 text-white ">
+                                                    IMC: {calculateBMI(measurement.weight, measurement.height).toFixed(1)}
+                                                </Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <p className="text-gray-400">Peso</p>
+                                                    <p className="text-white font-medium">{measurement.weight} kg</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-400">Altura</p>
+                                                    <p className="text-white font-medium">{measurement.height} cm</p>
+                                                </div>
+                                                {measurement.body_fat_percentage && (
+                                                    <div>
+                                                        <p className="text-gray-400">% Grasa</p>
+                                                        <p className="text-white font-medium">{measurement.body_fat_percentage}%</p>
+                                                    </div>
+                                                )}
+                                                {measurement.muscle_mass && (
+                                                    <div>
+                                                        <p className="text-gray-400">Masa Muscular</p>
+                                                        <p className="text-white font-medium">{measurement.muscle_mass} kg</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {measurement.notes && <p className="text-gray-400 text-sm mt-3 italic">{measurement.notes}</p>}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <Card className="bg-gray-900 border-gray-800">
+                                <CardContent className="p-6 text-center">
+                                    <Scale className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                                    <p className="text-gray-400">No hay mediciones registradas</p>
+                                    <p className="text-gray-500 text-sm mt-1">Agrega tu primera medición para comenzar el seguimiento</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="goals" className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-white">Objetivos</h3>
-                            <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-                                <DialogTrigger asChild>
-                                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                                        <Plus className="w-4 h-4 mr-2"/>
-                                        Agregar
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="bg-gray-900 border-gray-800 text-white">
-                                    <DialogHeader>
-                                        <DialogTitle>Nuevo Objetivo</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4">
+                        {/* Add Goal Button */}
+                        <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
+                            <DialogTrigger asChild>
+                                <Button className="w-full bg-green-600 hover:bg-green-700">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Agregar Objetivo
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                <DialogHeader>
+                                    <DialogTitle>Nuevo Objetivo</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="goal_type">Tipo de Objetivo</Label>
+                                        <Select
+                                            value={newGoal.goal_type}
+                                            onValueChange={(value) => setNewGoal({ ...newGoal, goal_type: value as any })}
+                                        >
+                                            <SelectTrigger className="bg-gray-800 border-gray-700">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-gray-800 border-gray-700">
+                                                <SelectItem value="weight_loss">Pérdida de Peso</SelectItem>
+                                                <SelectItem value="weight_gain">Aumento de Peso</SelectItem>
+                                                <SelectItem value="muscle_gain">Ganancia Muscular</SelectItem>
+                                                <SelectItem value="strength">Fuerza</SelectItem>
+                                                <SelectItem value="endurance">Resistencia</SelectItem>
+                                                <SelectItem value="other">Otro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-gray-300">Tipo de Objetivo</Label>
-                                            <select
-                                                value={newGoal.goal_type}
-                                                onChange={(e) => setNewGoal({
-                                                    ...newGoal,
-                                                    goal_type: e.target.value as any
-                                                })}
-                                                className="w-full p-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                            >
-                                                <option value="weight_loss">Pérdida de Peso</option>
-                                                <option value="weight_gain">Aumento de Peso</option>
-                                                <option value="muscle_gain">Ganancia Muscular</option>
-                                                <option value="strength">Fuerza</option>
-                                                <option value="endurance">Resistencia</option>
-                                                <option value="other">Otro</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Valor Objetivo</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={newGoal.target_value || ""}
-                                                    onChange={(e) => setNewGoal({
-                                                        ...newGoal,
-                                                        target_value: Number.parseFloat(e.target.value)
-                                                    })}
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Valor Actual</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={newGoal.current_value || ""}
-                                                    onChange={(e) => setNewGoal({
-                                                        ...newGoal,
-                                                        current_value: Number.parseFloat(e.target.value)
-                                                    })}
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Unidad</Label>
-                                                <Input
-                                                    value={newGoal.unit || ""}
-                                                    onChange={(e) => setNewGoal({...newGoal, unit: e.target.value})}
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                    placeholder="kg, lbs, cm, etc."
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-gray-300">Fecha Objetivo</Label>
-                                                <Input
-                                                    type="date"
-                                                    value={newGoal.target_date}
-                                                    onChange={(e) => setNewGoal({
-                                                        ...newGoal,
-                                                        target_date: e.target.value
-                                                    })}
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label className="text-gray-300">Notas</Label>
+                                            <Label htmlFor="current_value">Valor Actual</Label>
                                             <Input
-                                                value={newGoal.notes || ""}
-                                                onChange={(e) => setNewGoal({...newGoal, notes: e.target.value})}
-                                                className="bg-gray-800 border-gray-700 text-white"
-                                                placeholder="Descripción del objetivo"
+                                                id="current_value"
+                                                type="number"
+                                                step="0.1"
+                                                value={newGoal.current_value || ""}
+                                                onChange={(e) => setNewGoal({ ...newGoal, current_value: Number.parseFloat(e.target.value) })}
+                                                className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={handleAddGoal}
-                                                disabled={isLoading}
-                                                className="flex-1 bg-purple-600 hover:bg-purple-700"
-                                            >
-                                                {isLoading ? "Guardando..." : "Guardar"}
-                                            </Button>
-                                            <Button variant="outline" onClick={() => setShowAddGoal(false)}
-                                                    className="border-gray-600 text-black">
-                                                Cancelar
-                                            </Button>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="target_value">Valor Objetivo</Label>
+                                            <Input
+                                                id="target_value"
+                                                type="number"
+                                                step="0.1"
+                                                value={newGoal.target_value || ""}
+                                                onChange={(e) => setNewGoal({ ...newGoal, target_value: Number.parseFloat(e.target.value) })}
+                                                className="bg-gray-800 border-gray-700"
+                                            />
                                         </div>
                                     </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="unit">Unidad</Label>
+                                            <Input
+                                                id="unit"
+                                                value={newGoal.unit}
+                                                onChange={(e) => setNewGoal({ ...newGoal, unit: e.target.value })}
+                                                className="bg-gray-800 border-gray-700"
+                                                placeholder="kg, cm, reps, etc."
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="target_date">Fecha Objetivo</Label>
+                                            <Input
+                                                id="target_date"
+                                                type="date"
+                                                value={newGoal.target_date}
+                                                onChange={(e) => setNewGoal({ ...newGoal, target_date: e.target.value })}
+                                                className="bg-gray-800 border-gray-700"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={handleAddGoal}
+                                            disabled={isLoading}
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                            {isLoading ? "Guardando..." : "Guardar"}
+                                        </Button>
+                                        <Button variant="ghost" onClick={() => setShowAddGoal(false)} className="flex-1">
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
 
-                        <div className="space-y-4">
-                            {goals.map((goal) => {
-                                const progress = getGoalProgress(goal)
-                                const isCompleted = progress >= 100
-                                const daysRemaining = Math.ceil(
-                                    (new Date(goal.target_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                                )
-
-                                return (
+                        {/* Goals List */}
+                        {goals.length > 0 ? (
+                            <div className="space-y-4">
+                                {goals.map((goal) => (
                                     <Card key={goal.id} className="bg-gray-900 border-gray-800">
                                         <CardContent className="p-4">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h4 className="text-white font-medium capitalize">{goal.goal_type.replace("_", " ")}</h4>
-                                                    <p className="text-gray-400 text-sm">{goal.notes}</p>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-white font-medium capitalize">{goal.goal_type.replace("_", " ")}</h3>
+                                                    <Badge
+                                                        variant={goal.status === "active" ? "default" : "secondary"}
+                                                        className={goal.status === "active" ? "bg-green-600" : ""}
+                                                    >
+                                                        {goal.status === "active" ? "Activo" : "Completado"}
+                                                    </Badge>
                                                 </div>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`${
-                                                        isCompleted
-                                                            ? "border-green-600 text-green-400"
-                                                            : daysRemaining < 0
-                                                                ? "border-red-600 text-red-400"
-                                                                : "border-yellow-600 text-yellow-400"
-                                                    }`}
-                                                >
-                                                    {isCompleted ? (
-                                                        <CheckCircle className="w-3 h-3 mr-1"/>
-                                                    ) : daysRemaining < 0 ? (
-                                                        <AlertCircle className="w-3 h-3 mr-1"/>
-                                                    ) : (
-                                                        <Calendar className="w-3 h-3 mr-1"/>
-                                                    )}
-                                                    {isCompleted ? "Completado" : daysRemaining < 0 ? "Vencido" : `${daysRemaining} días`}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-300">Progreso</span>
-                                                    <span className="text-white">
-                    {goal.current_value} / {goal.target_value} {goal.unit}
-                </span>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-400">Progreso</span>
+                                                        <span className="text-white">
+                              {goal.current_value} → {goal.target_value} {goal.unit}
+                            </span>
+                                                    </div>
+                                                    <Progress value={getGoalProgress(goal)} className="h-2 bg-neutral-200  " indicatorClassName="bg-green-500" />
+                                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                                        <span>{Math.round(getGoalProgress(goal))}% completado</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <Calendar className="w-3 h-3" />
+                                                            <span>
+                                {getDaysUntilGoal(goal.target_date) > 0
+                                    ? `${getDaysUntilGoal(goal.target_date)} días restantes`
+                                    : "¡Fecha alcanzada!"}
+                              </span>
+                                                        </div>
+                                                    </div>
+                                                    {goal.notes && <p className="text-gray-400 text-sm mt-2">{goal.notes}</p>}
                                                 </div>
-                                                <Progress
-                                                    value={progress}
-                                                    className="h-2 bg-neutral-200" // color de fondo del track
-                                                    indicatorClassName="bg-green-500" // color de la barra (Indicator)
-                                                />
-
-                                                <div className="text-xs text-gray-400 text-right">{progress.toFixed(1)}%
-                                                    completado
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 text-xs text-gray-400">
-                                                Fecha objetivo: {new Date(goal.target_date).toLocaleDateString()}
                                             </div>
                                         </CardContent>
                                     </Card>
-                                )
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <Card className="bg-gray-900 border-gray-800">
+                                <CardContent className="p-6 text-center">
+                                    <Heart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                                    <p className="text-gray-400">No tienes objetivos definidos</p>
+                                    <p className="text-gray-500 text-sm mt-1">Crea tu primer objetivo para mantenerte motivado</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="membership" className="space-y-4">
+                        {/* Membership Status */}
                         {membershipInfo && (
                             <Card className="bg-gray-900 border-gray-800">
                                 <CardHeader>
                                     <CardTitle className="text-white flex items-center gap-2">
-                                        <CreditCard className="w-5 h-5 text-green-400"/>
+                                        <CreditCard className="w-5 h-5 text-green-400" />
                                         Estado de Membresía
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-gray-300">Estado:</span>
+                                        <span className="text-gray-400">Estado</span>
                                         <Badge
-                                            variant="outline"
-                                            className={`${
+                                            variant={membershipInfo.status === "active" ? "default" : "secondary"}
+                                            className={
                                                 membershipInfo.status === "active"
-                                                    ? "border-green-600 text-green-400"
+                                                    ? "bg-green-600"
                                                     : membershipInfo.status === "expired"
-                                                        ? "border-red-600 text-red-400"
-                                                        : "border-yellow-600 text-yellow-400"
-                                            }`}
+                                                        ? "bg-red-600"
+                                                        : "bg-yellow-600"
+                                            }
                                         >
                                             {membershipInfo.status === "active"
                                                 ? "Activa"
@@ -914,49 +969,81 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                                     : "Pendiente"}
                                         </Badge>
                                     </div>
-
                                     <div className="flex items-center justify-between">
-                                        <span className="text-gray-300">Fecha de inicio:</span>
-                                        <span
-                                            className="text-white">{new Date(membershipInfo.start_date).toLocaleDateString()}</span>
+                                        <span className="text-gray-400">Fecha de Inicio</span>
+                                        <span className="text-white">
+                      {new Date(membershipInfo.start_date).toLocaleDateString("es-ES")}
+                    </span>
                                     </div>
-
                                     <div className="flex items-center justify-between">
-                                        <span className="text-gray-300">Fecha de vencimiento:</span>
-                                        <span
-                                            className="text-white">{new Date(membershipInfo.end_date).toLocaleDateString()}</span>
+                                        <span className="text-gray-400">Fecha de Vencimiento</span>
+                                        <span className="text-white">{new Date(membershipInfo.end_date).toLocaleDateString("es-ES")}</span>
                                     </div>
-
                                     <div className="flex items-center justify-between">
-                                        <span className="text-gray-300">Cuota mensual:</span>
+                                        <span className="text-gray-400">Cuota Mensual</span>
                                         <span className="text-white font-medium">${membershipInfo.monthly_fee}</span>
                                     </div>
-
-                                    {membershipInfo.status === "active" && (
-                                        <div className="p-3 bg-green-900/20 border border-green-800 rounded-lg">
-                                            <div className="flex items-center gap-2 text-green-400">
-                                                <CheckCircle className="w-4 h-4"/>
-                                                <span className="font-medium">Membresía Activa</span>
-                                            </div>
-                                            <p className="text-green-300 text-sm mt-1">
-                                                Te quedan {membershipInfo.days_remaining} días de membresía
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {membershipInfo.status === "expired" && (
-                                        <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg">
-                                            <div className="flex items-center gap-2 text-red-400">
-                                                <AlertCircle className="w-4 h-4"/>
-                                                <span className="font-medium">Membresía Expirada</span>
-                                            </div>
-                                            <p className="text-red-300 text-sm mt-1">Contacta al gimnasio para renovar
-                                                tu membresía</p>
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-gray-400">Días Restantes</span>
+                                        <span
+                                            className={`font-medium ${
+                                                membershipInfo.days_remaining > 30
+                                                    ? "text-green-400"
+                                                    : membershipInfo.days_remaining > 7
+                                                        ? "text-yellow-400"
+                                                        : "text-red-400"
+                                            }`}
+                                        >
+                      {membershipInfo.days_remaining} días
+                    </span>
+                                    </div>
+                                    {membershipInfo.days_remaining <= 30 && (
+                                        <Alert className="border-yellow-500 bg-yellow-500/10">
+                                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                            <AlertDescription className="text-yellow-400">
+                                                Tu membresía vence pronto. Contacta al gimnasio para renovar.
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
                                 </CardContent>
                             </Card>
                         )}
+
+                        {/* Account Actions */}
+                        <Card className="bg-gray-900 border-gray-800">
+                            <CardHeader>
+                                <CardTitle className="text-white">Acciones de Cuenta</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <button
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#009ee3', // Color azul de Mercado Pago
+                                        color: '#fff',
+                                        border: 'none',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        fontFamily: 'Arial, sans-serif',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                                        transition: 'background-color 0.3s ease',
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#007bbb')} // Un poco más oscuro al pasar el mouse
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#009ee3')}
+                                >
+                                    <img
+                                        src="https://img.icons8.com/color/48/000000/mercado-pago.png" // Icono de Mercado Pago (puedes reemplazarlo)
+                                        alt="Mercado Pago Logo"
+                                        style={{ width: '24px', height: '24px', marginRight: '8px' }}
+                                    />
+                                    Pagar con Mercado Pago
+                                </button>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>
