@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, TrendingUp, Target, Award, Flame, BarChart3, Clock, Weight, Activity, Calendar } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+// import { supabase } from "@/lib/supabase"
 
 interface ProgressScreenProps {
     onBack: () => void
@@ -132,13 +132,42 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
         if (!userData?.id) return
 
         try {
-            // Cargar estadísticas de entrenamientos
-            const { data: workouts } = await supabase
-                .from("workouts")
-                .select("*")
-                .eq("user_id", userData.id)
-                .order("workout_date", { ascending: false })
+            // MOCK: Cargar estadísticas de entrenamientos
+            // const { data: workouts } = await supabase
+            //   .from("workouts")
+            //   .select("*")
+            //   .eq("user_id", userData.id)
+            //   .order("workout_date", { ascending: false })
 
+            // Mock data para workouts
+            const mockWorkouts = [
+                {
+                    id: "1",
+                    user_id: userData.id,
+                    workout_date: "2024-01-15",
+                    status: "completed",
+                    start_time: "2024-01-15T10:00:00Z",
+                    end_time: "2024-01-15T11:30:00Z",
+                },
+                {
+                    id: "2",
+                    user_id: userData.id,
+                    workout_date: "2024-01-14",
+                    status: "completed",
+                    start_time: "2024-01-14T09:00:00Z",
+                    end_time: "2024-01-14T10:15:00Z",
+                },
+                {
+                    id: "3",
+                    user_id: userData.id,
+                    workout_date: "2024-01-13",
+                    status: "completed",
+                    start_time: "2024-01-13T18:00:00Z",
+                    end_time: "2024-01-13T19:45:00Z",
+                },
+            ]
+
+            const workouts = mockWorkouts
             if (workouts) {
                 const completed = workouts.filter((w) => w.status === "completed")
                 const totalTime = completed.reduce((sum, w) => {
@@ -162,13 +191,35 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 setRecentWorkouts(workouts.slice(0, 5))
             }
 
-            // Cargar progreso de peso
-            const { data: measurements } = await supabase
-                .from("body_measurements")
-                .select("*")
-                .eq("user_id", userData.id)
-                .order("measurement_date", { ascending: true })
+            // MOCK: Cargar progreso de peso
+            // const { data: measurements } = await supabase
+            //   .from("body_measurements")
+            //   .select("*")
+            //   .eq("user_id", userData.id)
+            //   .order("measurement_date", { ascending: true })
 
+            const mockMeasurements = [
+                {
+                    measurement_date: "2024-01-01",
+                    weight: 75.5,
+                    body_fat_percentage: 15.2,
+                    muscle_mass: 45.8,
+                },
+                {
+                    measurement_date: "2024-01-15",
+                    weight: 74.8,
+                    body_fat_percentage: 14.9,
+                    muscle_mass: 46.1,
+                },
+                {
+                    measurement_date: "2024-02-01",
+                    weight: 74.2,
+                    body_fat_percentage: 14.5,
+                    muscle_mass: 46.5,
+                },
+            ]
+
+            const measurements = mockMeasurements
             if (measurements) {
                 setWeightProgress(
                     measurements
@@ -182,13 +233,37 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 )
             }
 
-            // Cargar objetivos
-            const { data: userGoals } = await supabase
-                .from("user_goals")
-                .select("*")
-                .eq("user_id", userData.id)
-                .eq("status", "active")
+            // MOCK: Cargar objetivos
+            // const { data: userGoals } = await supabase
+            //   .from("user_goals")
+            //   .select("*")
+            //   .eq("user_id", userData.id)
+            //   .eq("status", "active")
 
+            const mockGoals = [
+                {
+                    id: "1",
+                    goal_type: "weight_loss",
+                    target_value: 70,
+                    current_value: 74.2,
+                    unit: "kg",
+                    target_date: "2024-06-01",
+                    status: "active",
+                    notes: "Perder peso para el verano",
+                },
+                {
+                    id: "2",
+                    goal_type: "muscle_gain",
+                    target_value: 50,
+                    current_value: 46.5,
+                    unit: "kg",
+                    target_date: "2024-12-31",
+                    status: "active",
+                    notes: "Aumentar masa muscular",
+                },
+            ]
+
+            const userGoals = mockGoals
             if (userGoals) {
                 setGoals(
                     userGoals.map((g) => ({
@@ -296,8 +371,8 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
     }
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
-            {/* Header */}
+        <div className="min-h-screen bg-gray-950 text-white pb-20">
+            {/* Header simplificado */}
             <div className="bg-gray-900 border-b border-gray-800 p-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-400 hover:text-white">
@@ -378,13 +453,13 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 {/* Tabs */}
                 <Tabs defaultValue="overview" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 bg-gray-900">
-                        <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-accent">
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-gray-800">
                             Resumen
                         </TabsTrigger>
-                        <TabsTrigger value="weight" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-accent">
+                        <TabsTrigger value="weight" className="data-[state=active]:bg-gray-800">
                             Peso
                         </TabsTrigger>
-                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-accent">
+                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-800">
                             Objetivos
                         </TabsTrigger>
                     </TabsList>
