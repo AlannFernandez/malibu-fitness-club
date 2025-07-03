@@ -19,6 +19,11 @@ import {
   LogOut,
 } from "lucide-react"
 
+// Importar las nuevas pantallas al inicio del archivo
+import ProgressScreen from "./progress-screen"
+import ProfileScreen from "./profile-screen"
+import SettingsScreen from "./settings-screen"
+
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
   { id: "mar", name: "MAR", fullName: "Martes" },
@@ -207,36 +212,38 @@ const routineData = {
   },
 }
 
+// Añadir props para userData
 interface RoutinesScreenProps {
   onLogout: () => void
+  userData?: any
 }
 
-export default function RoutinesScreen({ onLogout }: RoutinesScreenProps) {
+export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenProps) {
   const [selectedDay, setSelectedDay] = useState("lun")
   const [activeTab, setActiveTab] = useState("routines")
-  const currentRoutine = routineData[selectedDay as keyof typeof routineData]
+  const [currentScreen, setCurrentScreen] = useState<"routines" | "progress" | "profile" | "settings">("routines")
 
-  const getCurrentDayIndex = () => {
-    return daysOfWeek.findIndex((day) => day.id === selectedDay)
-  }
+  const currentRoutine = routineData[selectedDay]
 
   const navigateDay = (direction: "prev" | "next") => {
-    const currentIndex = getCurrentDayIndex()
-    let newIndex
+    const currentIndex = daysOfWeek.findIndex((day) => day.id === selectedDay)
+    let newIndex = currentIndex
 
     if (direction === "prev") {
-      newIndex = currentIndex > 0 ? currentIndex - 1 : daysOfWeek.length - 1
-    } else {
-      newIndex = currentIndex < daysOfWeek.length - 1 ? currentIndex + 1 : 0
+      newIndex = currentIndex - 1
+      if (newIndex < 0) newIndex = daysOfWeek.length - 1
+    } else if (direction === "next") {
+      newIndex = currentIndex + 1
+      if (newIndex >= daysOfWeek.length) newIndex = 0
     }
 
     setSelectedDay(daysOfWeek[newIndex].id)
   }
 
   const getVisibleDays = () => {
-    const currentIndex = getCurrentDayIndex()
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : daysOfWeek.length - 1
-    const nextIndex = currentIndex < daysOfWeek.length - 1 ? currentIndex + 1 : 0
+    const currentIndex = daysOfWeek.findIndex((day) => day.id === selectedDay)
+    const prevIndex = (currentIndex - 1 + daysOfWeek.length) % daysOfWeek.length
+    const nextIndex = (currentIndex + 1) % daysOfWeek.length
 
     return [
       { ...daysOfWeek[prevIndex], position: "prev" },
@@ -245,189 +252,217 @@ export default function RoutinesScreen({ onLogout }: RoutinesScreenProps) {
     ]
   }
 
+  // Añadir función para manejar navegación
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    if (tab === "progress") {
+      setCurrentScreen("progress")
+    } else if (tab === "profile") {
+      setCurrentScreen("profile")
+    } else if (tab === "settings") {
+      setCurrentScreen("settings")
+    } else {
+      setCurrentScreen("routines")
+    }
+  }
+
+  // Añadir renderizado condicional antes del return principal
+  if (currentScreen === "progress") {
+    return <ProgressScreen onBack={() => setCurrentScreen("routines")} userData={userData} />
+  }
+
+  if (currentScreen === "profile") {
+    return <ProfileScreen onBack={() => setCurrentScreen("routines")} userData={userData} />
+  }
+
+  if (currentScreen === "settings") {
+    console.log('ir a config')
+    //return <SettingsScreen onBack={() => setCurrentScreen("routines")} onLogout={onLogout} userData={userData} />
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Mis Rutinas</h1>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Clock className="w-4 h-4" />
-            <span>{currentRoutine.duration}</span>
-          </div>
-        </div>
-
-        {/* Day Slider Navigation */}
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigateDay("prev")}
-            className="text-gray-400 hover:text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-
-          <div className="flex items-center gap-4">
-            {getVisibleDays().map((day) => (
-              <Button
-                key={day.id}
-                variant="ghost"
-                onClick={() => setSelectedDay(day.id)}
-                className={`min-w-[60px] transition-all duration-300 ${
-                  day.position === "current"
-                    ? "bg-blue-600 hover:bg-blue-700 text-white scale-110 font-semibold"
-                    : day.position === "prev" || day.position === "next"
-                      ? "text-gray-500 hover:text-gray-300 scale-90"
-                      : "text-gray-400 hover:text-white"
-                }`}
-              >
-                {day.name}
-              </Button>
-            ))}
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigateDay("next")}
-            className="text-gray-400 hover:text-white"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 p-4 pb-20">
-        {/* Routine Title */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">{currentRoutine.title}</h2>
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <div className="flex items-center gap-1">
-              <Target className="w-4 h-4" />
-              <span>{currentRoutine.exercises.length} ejercicios</span>
-            </div>
-            <div className="flex items-center gap-1">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+        {/* Header */}
+        <div className="bg-gray-900 border-b border-gray-800 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold">Mis Rutinas</h1>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
               <Clock className="w-4 h-4" />
               <span>{currentRoutine.duration}</span>
             </div>
           </div>
-        </div>
 
-        {/* Start Routine Button */}
-        <Button className="w-full mb-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3">
-          <Play className="w-5 h-5 mr-2" />
-          Iniciar Sesión de Entrenamiento
-        </Button>
+          {/* Day Slider Navigation */}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigateDay("prev")}
+                className="text-gray-400 hover:text-white"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
 
-        {/* Exercise List */}
-        <ScrollArea className="h-100vh">
-          <div className="space-y-4">
-            {currentRoutine.exercises.map((exercise, index) => (
-              <Card key={index} className="bg-gray-900 border-gray-800">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-white mb-2">{exercise.name}</CardTitle>
-                      <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                        <Badge variant="secondary" className="bg-gray-800 text-gray-300">
-                          {exercise.sets}
-                        </Badge>
-                        <span>•</span>
-                        <span>{exercise.reps}</span>
-                      </div>
-                    </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-green-500/20 rounded-lg flex items-center justify-center border border-gray-700">
-                      <Weight className="w-6 h-6 text-blue-400" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1 text-blue-400">
-                        <Weight className="w-4 h-4" />
-                        <span>{exercise.weight}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-orange-400">
-                        <Clock className="w-4 h-4" />
-                        <span>{exercise.rest}</span>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                      Ver técnica
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="flex items-center gap-4">
+              {getVisibleDays().map((day) => (
+                  <Button
+                      key={day.id}
+                      variant="ghost"
+                      onClick={() => setSelectedDay(day.id)}
+                      className={`min-w-[60px] transition-all duration-300 ${
+                          day.position === "current"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white scale-110 font-semibold"
+                              : day.position === "prev" || day.position === "next"
+                                  ? "text-gray-500 hover:text-gray-300 scale-90"
+                                  : "text-gray-400 hover:text-white"
+                      }`}
+                  >
+                    {day.name}
+                  </Button>
+              ))}
+            </div>
+
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigateDay("next")}
+                className="text-gray-400 hover:text-white"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
           </div>
-        </ScrollArea>
-      </div>
+        </div>
 
-      {/* Bottom Tab Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-2">
-        <div className="flex items-center justify-around">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("routines")}
-            className={`flex flex-col items-center gap-1 ${
-              activeTab === "routines" ? "text-blue-400" : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-xs">Rutinas</span>
+        {/* Content */}
+        <div className="flex-1 p-4 pb-20">
+          {/* Routine Title */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">{currentRoutine.title}</h2>
+            <div className="flex items-center gap-4 text-sm text-gray-400">
+              <div className="flex items-center gap-1">
+                <Target className="w-4 h-4" />
+                <span>{currentRoutine.exercises.length} ejercicios</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>{currentRoutine.duration}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Start Routine Button */}
+          <Button className="w-full mb-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3">
+            <Play className="w-5 h-5 mr-2" />
+            Iniciar Sesión de Entrenamiento
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("progress")}
-            className={`flex flex-col items-center gap-1 ${
-              activeTab === "progress" ? "text-blue-400" : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-xs">Progreso</span>
-          </Button>
+          {/* Exercise List */}
+          <ScrollArea className="h-100vh">
+            <div className="space-y-4">
+              {currentRoutine.exercises.map((exercise, index) => (
+                  <Card key={index} className="bg-gray-900 border-gray-800">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg font-semibold text-white mb-2">{exercise.name}</CardTitle>
+                          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                            <Badge variant="secondary" className="bg-gray-800 text-gray-300">
+                              {exercise.sets}
+                            </Badge>
+                            <span>•</span>
+                            <span>{exercise.reps}</span>
+                          </div>
+                        </div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-green-500/20 rounded-lg flex items-center justify-center border border-gray-700">
+                          <Weight className="w-6 h-6 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1 text-blue-400">
+                            <Weight className="w-4 h-4" />
+                            <span>{exercise.weight}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-orange-400">
+                            <Clock className="w-4 h-4" />
+                            <span>{exercise.rest}</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                          Ver técnica
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("profile")}
-            className={`flex flex-col items-center gap-1 ${
-              activeTab === "profile" ? "text-blue-400" : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-xs">Perfil</span>
-          </Button>
+        {/* Bottom Tab Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-2">
+          <div className="flex items-center justify-around">
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("routines")}
+                className={`flex flex-col items-center gap-1 ${
+                    activeTab === "routines" ? "text-blue-400" : "text-gray-400 hover:text-white"
+                }`}
+            >
+              <Home className="w-5 h-5" />
+              <span className="text-xs">Rutinas</span>
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("settings")}
-            className={`flex flex-col items-center gap-1 ${
-              activeTab === "settings" ? "text-blue-400" : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="text-xs">Config</span>
-          </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleTabChange("progress")}
+                className={`flex flex-col items-center gap-1 ${
+                    activeTab === "progress" ? "text-blue-400" : "text-gray-400 hover:text-white"
+                }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              <span className="text-xs">Progreso</span>
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-400"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-xs">Salir</span>
-          </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleTabChange("profile")}
+                className={`flex flex-col items-center gap-1 ${
+                    activeTab === "profile" ? "text-blue-400" : "text-gray-400 hover:text-white"
+                }`}
+            >
+              <User className="w-5 h-5" />
+              <span className="text-xs">Perfil</span>
+            </Button>
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleTabChange("settings")}
+                className={`flex flex-col items-center gap-1 ${
+                    activeTab === "settings" ? "text-blue-400" : "text-gray-400 hover:text-white"
+                }`}
+            >
+              <Settings className="w-5 h-5" />
+              <span className="text-xs">Config</span>
+            </Button>
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogout}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-400"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-xs">Salir</span>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
   )
 }
