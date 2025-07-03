@@ -317,7 +317,7 @@ export default function ExerciseCreator({ onBack, onLogout }: ExerciseCreatorPro
 
                   {(sets || reps) && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Badge variant="secondary" className="bg-blue-500 hover:bg-blue-700">
+                      <Badge variant="secondary" className="bg-gray-600 hover:bg-gray-500 text-gray-200 text-xs">
                         {sets || "0"} series
                       </Badge>
                       <span className="text-gray-400">•</span>

@@ -430,7 +430,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                 <p className="text-sm text-gray-400">Selecciona los estudiantes para esta rutina</p>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-350px)]">
+                <ScrollArea className="h-100vh">
                   <div className="p-4 space-y-3">
                     {activeStudents.map((student) => (
                       <div
