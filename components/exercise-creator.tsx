@@ -146,10 +146,10 @@ export default function ExerciseCreator({ onBack, onLogout }: ExerciseCreatorPro
                         <SelectValue placeholder="Seleccionar categoría" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="fuerza">Fuerza</SelectItem>
-                        <SelectItem value="cardio">Cardio</SelectItem>
-                        <SelectItem value="flexibilidad">Flexibilidad</SelectItem>
-                        <SelectItem value="funcional">Funcional</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="fuerza">Fuerza</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="cardio">Cardio</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="flexibilidad">Flexibilidad</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="funcional">Funcional</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -161,9 +161,9 @@ export default function ExerciseCreator({ onBack, onLogout }: ExerciseCreatorPro
                         <SelectValue placeholder="Seleccionar dificultad" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="principiante">Principiante</SelectItem>
-                        <SelectItem value="intermedio">Intermedio</SelectItem>
-                        <SelectItem value="avanzado">Avanzado</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="principiante">Principiante</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="intermedio">Intermedio</SelectItem>
+                        <SelectItem className={'text-blue-50'} value="avanzado">Avanzado</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -176,12 +176,12 @@ export default function ExerciseCreator({ onBack, onLogout }: ExerciseCreatorPro
                       <SelectValue placeholder="Seleccionar equipamiento" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="peso-corporal">Peso Corporal</SelectItem>
-                      <SelectItem value="mancuernas">Mancuernas</SelectItem>
-                      <SelectItem value="barra">Barra</SelectItem>
-                      <SelectItem value="maquina">Máquina</SelectItem>
-                      <SelectItem value="kettlebell">Kettlebell</SelectItem>
-                      <SelectItem value="banda-elastica">Banda Elástica</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="peso-corporal">Peso Corporal</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="mancuernas">Mancuernas</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="barra">Barra</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="maquina">Máquina</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="kettlebell">Kettlebell</SelectItem>
+                      <SelectItem className={'text-blue-50'} value="banda-elastica">Banda Elástica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -317,7 +317,7 @@ export default function ExerciseCreator({ onBack, onLogout }: ExerciseCreatorPro
 
                   {(sets || reps) && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Badge variant="secondary" className="bg-gray-800">
+                      <Badge variant="secondary" className="bg-blue-500 hover:bg-blue-700">
                         {sets || "0"} series
                       </Badge>
                       <span className="text-gray-400">•</span>
