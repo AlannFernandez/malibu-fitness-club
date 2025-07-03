@@ -46,34 +46,34 @@ export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashbo
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card
-            className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 border-blue-700/50 cursor-pointer hover:from-blue-800/60 hover:to-blue-700/40 transition-all duration-200"
-            onClick={() => onNavigate("create-exercise")}
-          >
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <Plus className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-white">Crear Ejercicio</CardTitle>
-                  <p className="text-blue-200 text-sm">Añadir nuevo ejercicio</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-300 text-sm">
-                Crea ejercicios personalizados con descripción, series, repeticiones y más.
-              </p>
-            </CardContent>
-          </Card>
+    className="bg-blue-800/90 border-blue-700 cursor-pointer hover:bg-blue-700/80 transition-all duration-200 shadow-md"
+    onClick={() => onNavigate("create-exercise")}
+    >     
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-500/25 rounded-lg flex items-center justify-center border border-blue-600/30">
+              <Plus className="w-6 h-6 text-blue-200" />
+            </div>
+          <div>
+            <CardTitle className="text-white">Crear Ejercicio</CardTitle>
+            <p className="text-blue-100/80 text-sm">Añadir nuevo ejercicio</p>
+          </div>
+        </div>
+      </CardHeader>
+        <CardContent>
+          <p className="text-blue-100/70 text-sm">
+            Crea ejercicios personalizados con descripción, series, repeticiones y más.
+          </p>
+        </CardContent>
+      </Card>
 
           <Card
-            className="bg-gradient-to-br from-green-900/50 to-green-800/30 border-green-700/50 cursor-pointer hover:from-green-800/60 hover:to-green-700/40 transition-all duration-200"
+            className="bg-green-400/75 border-green-700/50 cursor-pointer hover:from-green-800/30 hover:to-green-700/40 transition-all duration-200"
             onClick={() => onNavigate("build-routine")}
           >
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-green-800/50 rounded-lg flex items-center justify-center">
                   <Calendar className="w-6 h-6 text-green-400" />
                 </div>
                 <div>
@@ -90,7 +90,7 @@ export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashbo
           </Card>
 
           <Card
-            className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 border-purple-700/50 cursor-pointer hover:from-purple-800/60 hover:to-purple-700/40 transition-all duration-200"
+            className="bg-purple-600/90 border-purple-700/70 cursor-pointer hover:from-purple-800/60 hover:to-purple-700/40 transition-all duration-200"
             onClick={() => onNavigate("manage-students")}
           >
             <CardHeader className="pb-4">
@@ -111,7 +111,7 @@ export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashbo
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-900/50 to-orange-800/30 border-orange-700/50">
+          <Card className="bg-orange-300/80 border-orange-700/50">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
