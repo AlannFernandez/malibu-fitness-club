@@ -453,13 +453,13 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 {/* Tabs */}
                 <Tabs defaultValue="overview" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 bg-gray-900">
-                        <TabsTrigger value="overview" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Resumen
                         </TabsTrigger>
-                        <TabsTrigger value="weight" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="weight" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Peso
                         </TabsTrigger>
-                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Objetivos
                         </TabsTrigger>
                     </TabsList>
@@ -642,7 +642,7 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                                                         → {goal.targetValue} {goal.unit}
                           </span>
                                                 </div>
-                                                <Progress value={getGoalProgress(goal)} className="h-2" />
+                                                <Progress value={getGoalProgress(goal)}  className="h-2 bg-neutral-200  " indicatorClassName="bg-green-500" />
                                                 <div className="flex items-center justify-between text-xs text-gray-500">
                                                     <span>{Math.round(getGoalProgress(goal))}% completado</span>
                                                     <div className="flex items-center gap-1">

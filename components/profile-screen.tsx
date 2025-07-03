@@ -164,10 +164,10 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                     {
                         id: "1",
                         goal_type: "weight_loss",
-                        target_value: 70,
+                        target_value: 80,
                         current_value: 74.2,
                         unit: "kg",
-                        target_date: "2024-06-01",
+                        target_date: "2026-06-01",
                         status: "active",
                         notes: "Perder peso para el verano",
                     },
@@ -436,16 +436,16 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                 {/* Tabs */}
                 <Tabs defaultValue="profile" className="w-full">
                     <TabsList className="grid w-full grid-cols-4 bg-gray-900">
-                        <TabsTrigger value="profile" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="profile" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Perfil
                         </TabsTrigger>
-                        <TabsTrigger value="measurements" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="measurements" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Medidas
                         </TabsTrigger>
-                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="goals" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Objetivos
                         </TabsTrigger>
-                        <TabsTrigger value="membership" className="data-[state=active]:bg-gray-800">
+                        <TabsTrigger value="membership" className="data-[state=active]:bg-gray-700 text-white data-[state=active]:text-white">
                             Membresía
                         </TabsTrigger>
                     </TabsList>
@@ -728,7 +728,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                         >
                                             {isLoading ? "Guardando..." : "Guardar"}
                                         </Button>
-                                        <Button variant="ghost" onClick={() => setShowAddMeasurement(false)} className="flex-1">
+                                        <Button variant="ghost" onClick={() => setShowAddMeasurement(false)} className="flex-1 bg-red-600 hover:bg-red-700 hover:text-white">
                                             Cancelar
                                         </Button>
                                     </div>
@@ -749,7 +749,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                             {new Date(measurement.measurement_date).toLocaleDateString("es-ES")}
                           </span>
                                                 </div>
-                                                <Badge variant="secondary" className="bg-gray-800">
+                                                <Badge variant="secondary" className="bg-gray-700 text-white ">
                                                     IMC: {calculateBMI(measurement.weight, measurement.height).toFixed(1)}
                                                 </Badge>
                                             </div>
@@ -909,7 +909,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                               {goal.current_value} → {goal.target_value} {goal.unit}
                             </span>
                                                     </div>
-                                                    <Progress value={getGoalProgress(goal)} className="h-2" />
+                                                    <Progress value={getGoalProgress(goal)} className="h-2 bg-neutral-200  " indicatorClassName="bg-green-500" />
                                                     <div className="flex items-center justify-between text-xs text-gray-500">
                                                         <span>{Math.round(getGoalProgress(goal))}% completado</span>
                                                         <div className="flex items-center gap-1">
@@ -1015,27 +1015,33 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                 <CardTitle className="text-white">Acciones de Cuenta</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start border-gray-700 hover:bg-gray-800 bg-transparent"
+                                <button
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#009ee3', // Color azul de Mercado Pago
+                                        color: '#fff',
+                                        border: 'none',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        fontFamily: 'Arial, sans-serif',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                                        transition: 'background-color 0.3s ease',
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#007bbb')} // Un poco más oscuro al pasar el mouse
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#009ee3')}
                                 >
-                                    <CreditCard className="w-4 h-4 mr-2" />
-                                    Renovar Membresía
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start border-gray-700 hover:bg-gray-800 bg-transparent"
-                                >
-                                    <User className="w-4 h-4 mr-2" />
-                                    Cambiar Contraseña
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={onLogout}
-                                    className="w-full justify-start border-red-700 text-red-400 hover:bg-red-900/20 hover:text-red-300 bg-transparent"
-                                >
-                                    Cerrar Sesión
-                                </Button>
+                                    <img
+                                        src="https://img.icons8.com/color/48/000000/mercado-pago.png" // Icono de Mercado Pago (puedes reemplazarlo)
+                                        alt="Mercado Pago Logo"
+                                        style={{ width: '24px', height: '24px', marginRight: '8px' }}
+                                    />
+                                    Pagar con Mercado Pago
+                                </button>
                             </CardContent>
                         </Card>
                     </TabsContent>
