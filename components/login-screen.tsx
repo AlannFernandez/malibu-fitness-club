@@ -31,7 +31,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     try {
       if (isSignUp) {
         // Registro
-        await authService.signUp(email, password, "", "")
+        await authService.signUp(email, password)
         setError("Registro exitoso! Revisa tu email para confirmar tu cuenta.")
         setIsSignUp(false)
       } else {
@@ -82,7 +82,6 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-300">
                   Email
