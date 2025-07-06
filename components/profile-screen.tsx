@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { userService } from "@/lib/users";
+import { bodyMeasurementService, BodyMeasurement as SupabaseBodyMeasurement } from "@/lib/body-measurements";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,25 +29,12 @@ import {
     CreditCard,
 } from "lucide-react"
 
+import { BodyMeasurement } from "@/interfaces/body-measurement";
+
 interface ProfileScreenProps {
     onBack: () => void
     onLogout: () => void
     userData: any
-}
-
-interface BodyMeasurement {
-    id: string
-    weight: number
-    height: number
-    body_fat_percentage?: number
-    muscle_mass?: number
-    chest?: number
-    waist?: number
-    hips?: number
-    bicep?: number
-    thigh?: number
-    measurement_date: string
-    notes?: string
 }
 
 interface UserGoal {
@@ -117,45 +105,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
 
     const loadProfileData = async () => {
         try {
-            // MOCK: Cargar mediciones corporales
-            const savedMeasurements = localStorage.getItem(`measurements_${userData.id}`)
-            if (savedMeasurements) {
-                setMeasurements(JSON.parse(savedMeasurements))
-            } else {
-                // Mock data inicial
-                const mockMeasurements: BodyMeasurement[] = [
-                    {
-                        id: "1",
-                        weight: 75.5,
-                        height: 175,
-                        body_fat_percentage: 15.2,
-                        muscle_mass: 45.8,
-                        chest: 95,
-                        waist: 82,
-                        hips: 98,
-                        bicep: 35,
-                        thigh: 58,
-                        measurement_date: "2024-01-15",
-                        notes: "Medición inicial",
-                    },
-                    {
-                        id: "2",
-                        weight: 74.2,
-                        height: 175,
-                        body_fat_percentage: 14.8,
-                        muscle_mass: 46.2,
-                        chest: 96,
-                        waist: 80,
-                        hips: 97,
-                        bicep: 36,
-                        thigh: 59,
-                        measurement_date: "2024-02-15",
-                        notes: "Progreso después de 1 mes",
-                    },
-                ]
-                setMeasurements(mockMeasurements)
-                localStorage.setItem(`measurements_${userData.id}`, JSON.stringify(mockMeasurements))
-            }
+            // Obtener mediciones corporales desde Supabase
+            const supabaseMeasurements = await bodyMeasurementService.getMeasurementsByUser(userData.id);
+            setMeasurements(supabaseMeasurements);
 
             // MOCK: Cargar objetivos
             const savedGoals = localStorage.getItem(`goals_${userData.id}`)
@@ -200,19 +152,18 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
             }
             setMembershipInfo(mockMembership)
 
-            // Cargar datos adicionales del perfil (virus mati)
+            // Cargar datos adicionales del perfil
             const savedProfile = localStorage.getItem(`profile_${userData.id}`)
             if (savedProfile) {
-            const user = await userService.getUserById(userData.id);
-
-                    setProfileData((prev) => ({
-                        ...prev,
-                        full_name: user.full_name || prev.full_name,
-                        phone: user.phone || prev.phone,
-                        gender: user.gender || prev.gender,
-                        birth_date: user.birth_date || prev.birth_date,
-                        email: userData?.email || prev.email, 
-                            }))
+                const user = await userService.getUserById(userData.id);
+                setProfileData((prev) => ({
+                    ...prev,
+                    full_name: user.full_name || prev.full_name,
+                    phone: user.phone || prev.phone,
+                    gender: user.gender || prev.gender,
+                    birth_date: user.birth_date || prev.birth_date,
+                    email: userData?.email || prev.email,
+                }))
             }
         } catch (error) {
             console.error("Error loading profile data:", error)
@@ -249,8 +200,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         setMessage(null)
 
         try {
-            const measurementToAdd: BodyMeasurement = {
-                id: Date.now().toString(),
+            // Guardar medición en Supabase
+            const measurementToAdd: Omit<SupabaseBodyMeasurement, "id" | "created_at"> = {
+                user_id: userData.id,
                 weight: newMeasurement.weight!,
                 height: newMeasurement.height!,
                 body_fat_percentage: newMeasurement.body_fat_percentage || 0,
@@ -262,15 +214,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                 thigh: newMeasurement.thigh || 0,
                 measurement_date: newMeasurement.measurement_date!,
                 notes: newMeasurement.notes || "",
-            }
-
-            // Simular delay de red
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            const updatedMeasurements = [measurementToAdd, ...measurements]
-            setMeasurements(updatedMeasurements)
-            localStorage.setItem(`measurements_${userData.id}`, JSON.stringify(updatedMeasurements))
-
+            };
+            const newSaved = await bodyMeasurementService.addMeasurement(measurementToAdd);
+            setMeasurements([newSaved, ...measurements]);
             setNewMeasurement({
                 weight: 0,
                 height: 0,
@@ -379,7 +325,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         return age
     }
 
-    const latestMeasurement = measurements.length > 0 ? measurements[0] : null
+    const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null
 
     return (
         <div className="min-h-screen bg-gray-950 text-white pb-20">
