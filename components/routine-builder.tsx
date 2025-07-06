@@ -33,7 +33,7 @@ import { exerciseService } from "@/lib/excercise"
 import { userService } from "@/lib/users"
 import { routineService } from "@/lib/routines"
 import { routineExerciseService } from "@/lib/routine-excercise"
-import { studentRoutineService } from "@/lib/studen-excercise"
+import { studentRoutineService } from "@/lib/student-excercise"
 import { authService } from "@/lib/auth"
 
 interface Exercise {
