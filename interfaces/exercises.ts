@@ -1,9 +1,9 @@
 export interface Exercise {
     name: string;
     description: string;
-    category: 'fuerza' | 'cardio' | 'funcional' | 'flexibilidad';
-    difficulty:'principiante' | 'intermedio' | 'avanzado';
-    equipment: 'peso corporal' | 'mancuernas' | 'barra' | 'kettlebell' | 'banda elastica';
+    category: Category;
+    difficulty: Dificulty
+    equipment: Equipament;
     muscle_groups: [];
     sets_suggested : string,
     reps_suggested : string,
@@ -12,3 +12,8 @@ export interface Exercise {
     created_by : string | null,
 }
 
+type Dificulty = 'principiante' | 'intermedio' | 'avanzado';
+
+type Category = 'fuerza' | 'cardio' | 'funcional' | 'flexibilidad';
+
+type Equipament = 'peso corporal' | 'mancuernas' | 'barra' | 'kettlebell' | 'banda elastica';

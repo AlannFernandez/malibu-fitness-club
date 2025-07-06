@@ -1,8 +1,13 @@
 "use client"
 
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Calendar, Users, BarChart3, Settings, LogOut, Dumbbell, BookOpen, Target, UserCheck } from "lucide-react"
+
+
+import { exerciseService } from "@/lib/excercise";
+import { userService } from "@/lib/users"
 
 interface TeacherDashboardProps {
   onNavigate: (view: "dashboard" | "create-exercise" | "build-routine" | "manage-students") => void
@@ -10,6 +15,41 @@ interface TeacherDashboardProps {
 }
 
 export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashboardProps) {
+  const [exerciseCount, setExerciseCount] = useState<number>(0);
+  const [usersCount, setUsersCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [exercises, users] = await Promise.all([
+          exerciseService.getExercises(),
+          userService.getUsers(),
+        ]);
+
+        if (exercises) {
+          setExerciseCount(exercises.length);
+        }
+
+        if (users) {
+          setUsersCount(users.length);
+        }
+
+      } catch (err: any) {
+        console.error("Error al obtener datos:", err);
+        setError(`Error al cargar datos: ${err.message || 'Error desconocido'}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
@@ -138,8 +178,34 @@ export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashbo
                   <BookOpen className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">127</p>
+                  {isLoading ? (
+                    <p className="text-2xl font-bold text-white">Cargando...</p>
+                  ) : error ? (
+                    <p className="text-sm text-red-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white">{exerciseCount}</p>
+                  )}
                   <p className="text-gray-400 text-sm">Ejercicios Creados</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  {isLoading ? (
+                    <p className="text-2xl font-bold text-white">Cargando...</p>
+                  ) : error ? (
+                    <p className="text-sm text-red-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white">{usersCount}</p>
+                  )}
+                  <p className="text-gray-400 text-sm">Estudiantes</p>
                 </div>
               </div>
             </CardContent>
@@ -154,20 +220,6 @@ export default function TeacherDashboard({ onNavigate, onLogout }: TeacherDashbo
                 <div>
                   <p className="text-2xl font-bold text-white">45</p>
                   <p className="text-gray-400 text-sm">Rutinas Activas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">24</p>
-                  <p className="text-gray-400 text-sm">Estudiantes</p>
                 </div>
               </div>
             </CardContent>
