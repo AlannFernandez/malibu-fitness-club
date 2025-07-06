@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dumbbell, Eye, EyeOff, Loader2 } from "lucide-react"
 import { authService } from "@/lib/auth"
+import PWAInstallPrompt from "./pwa-install-prompt"
 
 interface LoginScreenProps {
   onLogin: (membershipActive: boolean, email: string, userData: any) => void
@@ -24,6 +24,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,6 +42,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         const { user, userData } = await authService.signIn(email, password)
 
         if (user && userData) {
+          // Mostrar prompt de instalación después del login exitoso
+          setShowInstallPrompt(true)
+
           // Verificar estado de membresía solo para estudiantes
           let membershipActive = true
           if (userData.role === "student") {
@@ -86,36 +90,34 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                   <>
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-gray-300">
-                      Nombre Completo
-                    </Label>
-                    <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="Juan Pérez"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
-                        required={isSignUp}
-                    />
-                  </div>
-
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-gray-300">
-                      Apellido
-                    </Label>
-                    <Input
-                        id="lastName"
-                        type="text"
-                        placeholder="Pérez"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
-                        required={isSignUp}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-gray-300">
+                        Nombre Completo
+                      </Label>
+                      <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="Juan Pérez"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
+                          required={isSignUp}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-gray-300">
+                        Apellido
+                      </Label>
+                      <Input
+                          id="lastName"
+                          type="text"
+                          placeholder="Pérez"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
+                          required={isSignUp}
+                      />
+                    </div>
                   </>
               )}
 
@@ -216,6 +218,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* PWA Install Prompt - se muestra después del login exitoso */}
+        {showInstallPrompt && <PWAInstallPrompt showOnLogin={true} autoShow={false} delay={1000} />}
       </div>
   )
 }
