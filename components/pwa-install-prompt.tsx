@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, Download, Smartphone } from "lucide-react"
+import {useState, useEffect} from "react"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
+import {X, Download, Smartphone} from "lucide-react"
 
 interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[]
@@ -11,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
         outcome: "accepted" | "dismissed"
         platform: string
     }>
+
     prompt(): Promise<void>
 }
 
@@ -72,7 +73,7 @@ export default function PWAInstallPrompt({
             setIsInstalled(true)
             setShowInstallPrompt(false)
             setDeferredPrompt(null)
-            console.log("PWA instalada exitosamente")
+
         }
 
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
@@ -89,9 +90,9 @@ export default function PWAInstallPrompt({
 
         try {
             await deferredPrompt.prompt()
-            const { outcome } = await deferredPrompt.userChoice
+            const {outcome} = await deferredPrompt.userChoice
 
-            console.log(`Usuario ${outcome} la instalación`)
+
 
             if (outcome === "accepted") {
                 setIsInstalled(true)
@@ -122,11 +123,12 @@ export default function PWAInstallPrompt({
 
     return (
         <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80">
-            <Card className="bg-gradient-to-r from-blue-600 to-purple-600 border-0 text-white shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+            <Card
+                className="bg-gradient-to-r from-blue-600 to-purple-600 border-0 text-white shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
-                            <Smartphone className="w-5 h-5" />
+                            <Smartphone className="w-5 h-5"/>
                             Instalar App
                         </CardTitle>
                         <Button
@@ -135,7 +137,7 @@ export default function PWAInstallPrompt({
                             onClick={handleDismiss}
                             className="text-white hover:bg-white/20 h-8 w-8"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4"/>
                         </Button>
                     </div>
                 </CardHeader>
@@ -148,7 +150,7 @@ export default function PWAInstallPrompt({
                             onClick={handleInstallClick}
                             className="flex-1 bg-white text-blue-600 hover:bg-blue-50 font-semibold"
                         >
-                            <Download className="w-4 h-4 mr-2" />
+                            <Download className="w-4 h-4 mr-2"/>
                             Instalar
                         </Button>
                         <Button variant="ghost" onClick={handleDismiss} className="text-white hover:bg-white/20">

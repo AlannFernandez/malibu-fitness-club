@@ -207,15 +207,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
             </div>
 
-            {/* Demo Instructions */}
-            <div className="mt-8 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-              <p className="text-xs text-gray-400 text-center mb-2">
-                <strong>Para profesores:</strong>
-              </p>
-              <p className="text-xs text-gray-400 text-center">
-                Crea una cuenta con email que contenga "profesor" o "teacher"
-              </p>
-            </div>
+
           </CardContent>
         </Card>
 

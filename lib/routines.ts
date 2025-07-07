@@ -9,7 +9,7 @@ export const routineService = {
             .single();
 
         if (error) {
-            console.log("error al guardar la rutina", error.message)
+            console.error("error al guardar la rutina", error.message)
             throw error;
         }
         return data;

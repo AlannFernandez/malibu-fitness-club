@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { userService } from "@/lib/users";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -109,8 +110,10 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
     const [membershipInfo, setMembershipInfo] = useState<MembershipInfo | null>(null)
 
     useEffect(() => {
-        loadProfileData()
-    }, [userData])
+        if (userData?.id) {
+            loadProfileData();
+        }
+    }, [userData]);
 
     const loadProfileData = async () => {
         try {
@@ -197,15 +200,19 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
             }
             setMembershipInfo(mockMembership)
 
-            // Cargar datos adicionales del perfil desde localStorage si existen
+            // Cargar datos adicionales del perfil (virus mati)
             const savedProfile = localStorage.getItem(`profile_${userData.id}`)
             if (savedProfile) {
-                const parsedProfile = JSON.parse(savedProfile)
-                setProfileData((prev) => ({
-                    ...prev,
-                    ...parsedProfile,
-                    email: userData?.email || prev.email, // El email siempre viene del userData
-                }))
+            const user = await userService.getUserById(userData.id);
+
+                    setProfileData((prev) => ({
+                        ...prev,
+                        full_name: user.full_name || prev.full_name,
+                        phone: user.phone || prev.phone,
+                        gender: user.gender || prev.gender,
+                        birth_date: user.birth_date || prev.birth_date,
+                        email: userData?.email || prev.email, 
+                            }))
             }
         } catch (error) {
             console.error("Error loading profile data:", error)
@@ -217,40 +224,18 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         setMessage(null)
 
         try {
-            // MOCK: Actualizar perfil en base de datos
-            // const { error } = await supabase
-            //   .from("users")
-            //   .update({
-            //     full_name: profileData.full_name,
-            //     phone: profileData.phone,
-            //     gender: profileData.gender,
-            //     birth_date: profileData.birth_date,
-            //     updated_at: new Date().toISOString()
-            //   })
-            //   .eq("id", userData.id)
-
-            // if (error) throw error
-
-            // Simular delay de red
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            // Guardar en localStorage
-            localStorage.setItem(
-                `profile_${userData.id}`,
-                JSON.stringify({
-                    full_name: profileData.full_name,
-                    phone: profileData.phone,
-                    gender: profileData.gender,
-                    birth_date: profileData.birth_date,
-                }),
-            )
+            await userService.updateUserById(userData.id, {
+                full_name: profileData.full_name,
+                phone: profileData.phone,
+                gender: profileData.gender,
+                birth_date: profileData.birth_date,
+                updated_at: new Date().toISOString(),
+            })
 
             setMessage({ type: "success", text: "Perfil actualizado correctamente" })
             setIsEditing(false)
         } catch (error: any) {
             setMessage({ type: "error", text: "Error al actualizar el perfil" })
-        } finally {
-            setIsLoading(false)
         }
     }
 
