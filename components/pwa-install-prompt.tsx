@@ -29,7 +29,7 @@ export default function PWAInstallPrompt({
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const [showInstallPrompt, setShowInstallPrompt] = useState(false)
     const [isInstalled, setIsInstalled] = useState(false)
-    console.log('verificando el PWA alaaaaaaaaaaan')
+
     useEffect(() => {
         // Verificar si ya está instalado
         const checkIfInstalled = () => {
@@ -73,7 +73,7 @@ export default function PWAInstallPrompt({
             setIsInstalled(true)
             setShowInstallPrompt(false)
             setDeferredPrompt(null)
-            console.log("PWA instalada exitosamente")
+
         }
 
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
@@ -92,7 +92,7 @@ export default function PWAInstallPrompt({
             await deferredPrompt.prompt()
             const {outcome} = await deferredPrompt.userChoice
 
-            console.log(`Usuario ${outcome} la instalación`)
+
 
             if (outcome === "accepted") {
                 setIsInstalled(true)
