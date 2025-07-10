@@ -8,7 +8,7 @@ export const bodyMeasurementService = {
       .from("body_measurements")
       .select("*")
       .eq("user_id", userId)
-      .order("measurement_date", { ascending: false });
+      .order("measurement_date", { ascending: true });
     if (error) throw new Error(`Error obteniendo mediciones: ${error.message}`);
     return data as BodyMeasurement[];
   },

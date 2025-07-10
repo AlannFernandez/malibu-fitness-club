@@ -33,6 +33,7 @@ import { userGoalsService } from "@/lib/users-goals";
 import { UserGoal } from "@/interfaces/users-goals";
 
 import { BodyMeasurement } from "@/interfaces/body-measurement";
+import {goalTypeMap} from "@/lib/utils"
 
 interface ProfileScreenProps {
     onBack: () => void
@@ -101,6 +102,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
     useEffect(() => {
         if (measurements.length > 0) {
             setLastWeight(measurements[measurements.length - 1].weight)
+            setNewGoal({ ...newGoal, current_value: Number(measurements[measurements.length - 1].weight)})
         } else {
             setLastWeight(null)
         }
@@ -212,7 +214,13 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
             setIsLoading(false)
         }
     }
-
+    const getUserGoals = async () => {
+        return await userGoalsService.getGoalsByUser(userData.id)
+    }
+    const disabledUserGoal = async(goalId: string) => { 
+        const goalStatus= {status: 'cancelled'} as UserGoal
+        await userGoalsService.updateGoal(goalId, goalStatus )
+    }
     const handleAddGoal = async () => {
         if (!newGoal.target_value || !newGoal.target_date) {
             setMessage({ type: "error", text: "Valor objetivo y fecha son obligatorios" })
@@ -223,6 +231,13 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         setMessage(null)
 
         try {
+
+            const goals= await getUserGoals()
+
+            if (goals.length>0){
+                await disabledUserGoal(goals[0].id)
+            }
+
             const goalToAdd: Omit<UserGoal, "id" | "created_at" | "updated_at"> = {
                 user_id: userData.id,
                 goal_type: newGoal.goal_type!,
@@ -738,7 +753,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                                 type="number"
                                                 step="0.1"
                                                 value={lastWeight || ""}
-                                                onChange={(e) => setNewGoal({ ...newGoal, current_value: Number.parseFloat(e.target.value) })}
+                                                onChange={(e) => setNewGoal({ ...newGoal, current_value: Number(e.target.value) })}
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
@@ -804,13 +819,14 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
 
                         {/* Goals List */}
                         {goals.length > 0 ? (
+            
                             <div className="space-y-4">
                                 {goals.map((goal) => (
                                     <Card key={goal.id} className="bg-gray-900 border-gray-800">
                                         <CardContent className="p-4">
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <h3 className="text-white font-medium capitalize">{goal.goal_type.replace("_", " ")}</h3>
+                                                    <h3 className="text-white font-medium capitalize">{goalTypeMap[goal.goal_type]}</h3>
                                                     <Badge
                                                         variant={goal.status === "active" ? "default" : "secondary"}
                                                         className={goal.status === "active" ? "bg-green-600" : ""}

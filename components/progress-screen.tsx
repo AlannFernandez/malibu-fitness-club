@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, TrendingUp, Target, Award, Flame, BarChart3, Clock, Weight, Activity, Calendar } from "lucide-react"
-// import { supabase } from "@/lib/supabase"
+import {userGoalsService} from "@/lib/users-goals"
+import {goalTypeMap} from "@/lib/utils"
+import {bodyMeasurementService} from "@/lib/body-measurements"
 
 interface ProgressScreenProps {
     onBack: () => void
@@ -126,7 +128,8 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
 
     useEffect(() => {
         loadProgressData()
-    }, [userData])
+
+    }, [])
 
     const loadProgressData = async () => {
         if (!userData?.id) return
@@ -219,7 +222,7 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 },
             ]
 
-            const measurements = mockMeasurements
+            const measurements = await bodyMeasurementService.getMeasurementsByUser(userData.id)
             if (measurements) {
                 setWeightProgress(
                     measurements
@@ -233,37 +236,7 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 )
             }
 
-            // MOCK: Cargar objetivos
-            // const { data: userGoals } = await supabase
-            //   .from("user_goals")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .eq("status", "active")
-
-            const mockGoals = [
-                {
-                    id: "1",
-                    goal_type: "weight_loss",
-                    target_value: 70,
-                    current_value: 74.2,
-                    unit: "kg",
-                    target_date: "2024-06-01",
-                    status: "active",
-                    notes: "Perder peso para el verano",
-                },
-                {
-                    id: "2",
-                    goal_type: "muscle_gain",
-                    target_value: 50,
-                    current_value: 46.5,
-                    unit: "kg",
-                    target_date: "2024-12-31",
-                    status: "active",
-                    notes: "Aumentar masa muscular",
-                },
-            ]
-
-            const userGoals = mockGoals
+            const userGoals = await userGoalsService.getGoalsByUser(userData.id)
             if (userGoals) {
                 setGoals(
                     userGoals.map((g) => ({
@@ -623,7 +596,7 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                                     <CardContent className="p-4">
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="text-white font-medium capitalize">{goal.goalType.replace("_", " ")}</h3>
+                                                <h3 className="text-white font-medium capitalize">{goalTypeMap[goal.goalType]}</h3>
                                                 <Badge
                                                     variant={goal.status === "active" ? "default" : "secondary"}
                                                     className={goal.status === "active" ? "bg-green-600" : ""}
