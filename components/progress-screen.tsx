@@ -8,8 +8,10 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, TrendingUp, Target, Award, Flame, BarChart3, Clock, Weight, Activity, Calendar } from "lucide-react"
 import {userGoalsService} from "@/lib/users-goals"
-import {goalTypeMap} from "@/lib/utils"
+import {goalTypeMap, getDayWeek, daysOfWeek} from "@/lib/utils"
 import {bodyMeasurementService} from "@/lib/body-measurements"
+import {attendanceService} from "@/lib/attendance"
+import {workoutService} from  "@/lib/workout"
 
 interface ProgressScreenProps {
     onBack: () => void
@@ -42,6 +44,7 @@ interface Goal {
     status: string
     notes?: string
 }
+
 
 // Componente simple para gráfico de líneas
 const SimpleLineChart = ({ data, goal }: { data: WeightProgress[]; goal?: Goal }) => {
@@ -125,52 +128,22 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
     const [weightProgress, setWeightProgress] = useState<WeightProgress[]>([])
     const [goals, setGoals] = useState<Goal[]>([])
     const [recentWorkouts, setRecentWorkouts] = useState<any[]>([])
-
+    const [attendance, setAttendance] = useState<any[]>([])
     useEffect(() => {
         loadProgressData()
 
-    }, [])
+    }, [userData])
 
     const loadProgressData = async () => {
         if (!userData?.id) return
-
         try {
-            // MOCK: Cargar estadísticas de entrenamientos
-            // const { data: workouts } = await supabase
-            //   .from("workouts")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .order("workout_date", { ascending: false })
+            const [workouts, attendance, measurements, userGoals] = await Promise.all([
+                workoutService.getWorkout(userData.id),
+                attendanceService.getAttendance(userData.id),
+                bodyMeasurementService.getMeasurementsByUser(userData.id),
+                userGoalsService.getGoalsByUser(userData.id),
+            ])
 
-            // Mock data para workouts
-            const mockWorkouts = [
-                {
-                    id: "1",
-                    user_id: userData.id,
-                    workout_date: "2024-01-15",
-                    status: "completed",
-                    start_time: "2024-01-15T10:00:00Z",
-                    end_time: "2024-01-15T11:30:00Z",
-                },
-                {
-                    id: "2",
-                    user_id: userData.id,
-                    workout_date: "2024-01-14",
-                    status: "completed",
-                    start_time: "2024-01-14T09:00:00Z",
-                    end_time: "2024-01-14T10:15:00Z",
-                },
-                {
-                    id: "3",
-                    user_id: userData.id,
-                    workout_date: "2024-01-13",
-                    status: "completed",
-                    start_time: "2024-01-13T18:00:00Z",
-                    end_time: "2024-01-13T19:45:00Z",
-                },
-            ]
-
-            const workouts = mockWorkouts
             if (workouts) {
                 const completed = workouts.filter((w) => w.status === "completed")
                 const totalTime = completed.reduce((sum, w) => {
@@ -194,35 +167,10 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 setRecentWorkouts(workouts.slice(0, 5))
             }
 
-            // MOCK: Cargar progreso de peso
-            // const { data: measurements } = await supabase
-            //   .from("body_measurements")
-            //   .select("*")
-            //   .eq("user_id", userData.id)
-            //   .order("measurement_date", { ascending: true })
+            if (attendance && attendance.length > 0) {
+                setAttendance(attendance)
+            }
 
-            const mockMeasurements = [
-                {
-                    measurement_date: "2024-01-01",
-                    weight: 75.5,
-                    body_fat_percentage: 15.2,
-                    muscle_mass: 45.8,
-                },
-                {
-                    measurement_date: "2024-01-15",
-                    weight: 74.8,
-                    body_fat_percentage: 14.9,
-                    muscle_mass: 46.1,
-                },
-                {
-                    measurement_date: "2024-02-01",
-                    weight: 74.2,
-                    body_fat_percentage: 14.5,
-                    muscle_mass: 46.5,
-                },
-            ]
-
-            const measurements = await bodyMeasurementService.getMeasurementsByUser(userData.id)
             if (measurements) {
                 setWeightProgress(
                     measurements
@@ -236,7 +184,6 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                 )
             }
 
-            const userGoals = await userGoalsService.getGoalsByUser(userData.id)
             if (userGoals) {
                 setGoals(
                     userGoals.map((g) => ({
@@ -251,6 +198,7 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                     })),
                 )
             }
+
         } catch (error) {
             console.error("Error loading progress data:", error)
         }
@@ -448,11 +396,17 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-3">
-                                    {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day, index) => {
-                                        const completed = Math.random() > 0.3 // Mock data
+                                    {daysOfWeek.map((day, index) => {
+                                        const completed = attendance.some((attendance) => {
+                                            
+                                            return getDayWeek(attendance.date)===day.key
+                                            
+                                        }
+
+                                        )
                                         return (
-                                            <div key={day} className="flex items-center gap-3">
-                                                <span className="text-sm text-gray-400 w-8">{day}</span>
+                                            <div key={day.key} className="flex items-center gap-3">
+                                                <span className="text-sm text-gray-400 w-8">{day.sort}</span>
                                                 <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
                                                     <div
                                                         className={`h-full rounded-full ${completed ? "bg-green-500" : "bg-gray-700"}`}
@@ -484,11 +438,13 @@ export default function ProgressScreen({ onBack, userData }: ProgressScreenProps
                                             <div key={workout.id} className="flex items-center justify-between p-3 bg-gray-800 rounded">
                                                 <div>
                                                     <p className="text-white text-sm font-medium">
-                                                        {new Date(workout.workout_date).toLocaleDateString("es-ES", {
+                                                        {new Date(workout.workout_date + "T00:00:00").toLocaleDateString("es-ES", {
                                                             weekday: "long",
                                                             month: "short",
                                                             day: "numeric",
                                                         })}
+
+
                                                     </p>
                                                     <p className="text-gray-400 text-xs">
                                                         {workout.start_time && workout.end_time

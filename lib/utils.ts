@@ -13,3 +13,18 @@ export const goalTypeMap: Record<string,string>={
     endurance: "Resistencia",
     other: "Otro"
 }
+
+export function getDayWeek(date: string): string {
+  const dateParse = new Date(date)
+  return daysOfWeek[dateParse.getDay()].key
+}
+
+export const daysOfWeek = [
+  {key: 'lunes', sort: 'Lun'},
+  {key: 'martes', sort: 'Mar'},
+  {key: 'miercoles', sort: 'Mié'},
+  {key: 'jueves', sort: 'Jue'},
+  {key: 'viernes', sort: 'Vie'},
+  {key: 'sabado', sort: 'Sáb'},
+  {key: 'domingo', sort: 'Dom'}
+]
