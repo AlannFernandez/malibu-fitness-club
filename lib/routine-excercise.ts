@@ -17,8 +17,7 @@ export const routineExerciseService = {
             routine_id: routineId,
             ...ex
         }));
-
-        const { error } = await supabase
+    const { error } = await supabase
             .from("routine_exercises")
             .insert(payload);
 
