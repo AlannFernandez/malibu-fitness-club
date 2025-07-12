@@ -1,0 +1,153 @@
+{
+  "name": "Malibu fitness club",
+  "short_name": "Malibu",
+  "description": "Malibu fitness club",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["fitness", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/malibu_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mis Rutinas",
+      "short_name": "Rutinas",
+      "description": "Ver y comenzar rutinas de entrenamiento",
+      "url": "/routines",
+      "icons": [
+        {
+          "src": "/malibu_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Mi Progreso",
+      "short_name": "Progreso",
+      "description": "Ver progreso y estadísticas",
+      "url": "/profile?tab=measurements",
+      "icons": [
+        {
+          "src": "/malibu_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Mis Objetivos",
+      "short_name": "Objetivos",
+      "description": "Gestionar objetivos de fitness",
+      "url": "/profile?tab=goals",
+      "icons": [
+        {
+          "src": "/malibu_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Configuración",
+      "short_name": "Config",
+      "description": "Configurar la aplicación",
+      "url": "/settings",
+      "icons": [
+        {
+          "src": "/malibu_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Pantalla principal de rutinas"
+    },
+    {
+      "src": "/screenshot-mobile-2.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Seguimiento de progreso"
+    },
+    {
+      "src": "/screenshot-desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard del profesor"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+gym",
+      "url": "/share?url=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

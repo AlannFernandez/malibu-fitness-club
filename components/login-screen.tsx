@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dumbbell, Eye, EyeOff, Loader2 } from "lucide-react"
 import { authService } from "@/lib/auth"
+import PWAInstallPrompt from "./pwa-install-prompt"
 
 interface LoginScreenProps {
   onLogin: (membershipActive: boolean, email: string, userData: any) => void
@@ -22,6 +22,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +34,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     try {
       if (isSignUp) {
         // Registro
-        await authService.signUp(email, password)
+        await authService.signUp(email, password, firstName, lastName)
         setError("Registro exitoso! Revisa tu email para confirmar tu cuenta.")
         setIsSignUp(false)
       } else {
@@ -39,6 +42,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         const { user, userData } = await authService.signIn(email, password)
 
         if (user && userData) {
+          // Mostrar prompt de instalación después del login exitoso
+          setShowInstallPrompt(true)
+
           // Verificar estado de membresía solo para estudiantes
           let membershipActive = true
           if (userData.role === "student") {
@@ -82,6 +88,39 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-gray-300">
+                        Nombre Completo
+                      </Label>
+                      <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="Juan Pérez"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
+                          required={isSignUp}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-gray-300">
+                        Apellido
+                      </Label>
+                      <Input
+                          id="lastName"
+                          type="text"
+                          placeholder="Pérez"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500"
+                          required={isSignUp}
+                      />
+                    </div>
+                  </>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-300">
                   Email
@@ -126,7 +165,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
               <Button
                   type="submit"
-                  disabled={isLoading || !email || !password}
+                  disabled={isLoading || !email || !password || (isSignUp && !firstName)}
                   className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold py-3 transition-all duration-200"
               >
                 {isLoading ? (
@@ -167,8 +206,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 </Button>
               </div>
             </div>
+
+
           </CardContent>
         </Card>
+
+        {/* PWA Install Prompt - se muestra después del login exitoso */}
+        {showInstallPrompt && <PWAInstallPrompt showOnLogin={true} autoShow={false} delay={1000} />}
       </div>
   )
 }

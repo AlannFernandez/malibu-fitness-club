@@ -26,7 +26,7 @@ export const authService = {
                 .eq("email", data.user.email)
                 .single()
 
-            console.log(data);
+
             if (userError) throw userError
 
             return { user: data.user, userData }
