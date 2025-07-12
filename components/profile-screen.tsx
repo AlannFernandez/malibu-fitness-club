@@ -161,6 +161,17 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
         setMessage(null)
 
         try {
+            if (profileData.birth_date) {
+                const birthDate = new Date(profileData.birth_date)
+                const today = new Date()
+
+                if (birthDate > today) {
+                    setMessage({ type: "error", text: "La fecha de nacimiento no puede ser mayor a la fecha actual" })
+                    setIsLoading(false)
+                    return
+                }
+            }
+
             await userService.updateUserById(userData.id, {
                 full_name: profileData.full_name,
                 phone: profileData.phone,
@@ -173,6 +184,9 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
             setIsEditing(false)
         } catch (error: any) {
             setMessage({type: "error", text: "Error al actualizar el perfil"})
+            setMessage({ type: "error", text: "Error al actualizar el perfil" })
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -228,6 +242,21 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
     const handleAddGoal = async () => {
         if (!newGoal.target_value || !newGoal.target_date) {
             setMessage({type: "error", text: "Valor objetivo y fecha son obligatorios"})
+            return
+        }
+
+        if (newGoal.target_date) {
+            const targetDate = new Date(newGoal.target_date)
+            const today = new Date()
+
+            if (targetDate <= today) {
+                setMessage({ type: "error", text: "La fecha objetivo debe ser mayor a la fecha actual" })
+                return
+            }
+        }
+
+        if (newGoal.target_value <= 0) {
+            setMessage({ type: "error", text: "El valor objetivo debe ser mayor a cero" })
             return
         }
 
@@ -360,7 +389,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
 
             <div className="p-4 space-y-6">
                 {/* Message Alert */}
-                {message && (
+                {message && !showAddGoal && !showAddMeasurement && (
                     <Alert
                         className={`${message.type === "error" ? "border-red-500 bg-red-500/10" : "border-green-500 bg-green-500/10"}`}
                     >
@@ -521,11 +550,9 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                             id="birth_date"
                                             type="date"
                                             value={profileData.birth_date}
-                                            onChange={(e) => setProfileData({
-                                                ...profileData,
-                                                birth_date: e.target.value
-                                            })}
+                                            onChange={(e) => setProfileData({ ...profileData, birth_date: e.target.value })}
                                             disabled={!isEditing}
+                                            max={new Date().toISOString().split('T')[0]}
                                             className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"
                                         />
                                         {profileData.birth_date && (
@@ -764,6 +791,21 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                     <DialogTitle>Nuevo Objetivo</DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-4">
+                                    {message && (
+                                        <Alert
+                                            className={`${message.type === "error" ? "border-red-500 bg-red-500/10" : "border-green-500 bg-green-500/10"}`}
+                                        >
+                                            {message.type === "error" ? (
+                                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                            ) : (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                            )}
+                                            <AlertDescription className={message.type === "error" ? "text-red-400" : "text-green-400"}>
+                                                {message.text}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+
                                     <div className="space-y-2">
                                         <Label htmlFor="goal_type">Tipo de Objetivo</Label>
                                         <Select
@@ -774,12 +816,12 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                                 <SelectValue/>
                                             </SelectTrigger>
                                             <SelectContent className="bg-gray-800 border-gray-700">
-                                                <SelectItem value="weight_loss">Pérdida de Peso</SelectItem>
-                                                <SelectItem value="weight_gain">Aumento de Peso</SelectItem>
-                                                <SelectItem value="muscle_gain">Ganancia Muscular</SelectItem>
-                                                <SelectItem value="strength">Fuerza</SelectItem>
-                                                <SelectItem value="endurance">Resistencia</SelectItem>
-                                                <SelectItem value="other">Otro</SelectItem>
+                                                <SelectItem value="weight_loss" className="text-white hover:bg-gray-700">Pérdida de Peso</SelectItem>
+                                                <SelectItem value="weight_gain" className="text-white hover:bg-gray-700">Aumento de Peso</SelectItem>
+                                                <SelectItem value="muscle_gain" className="text-white hover:bg-gray-700">Ganancia Muscular</SelectItem>
+                                                <SelectItem value="strength" className="text-white hover:bg-gray-700">Fuerza</SelectItem>
+                                                <SelectItem value="endurance" className="text-white hover:bg-gray-700">Resistencia</SelectItem>
+                                                <SelectItem value="other" className="text-white hover:bg-gray-700">Otro</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -790,6 +832,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                                 id="current_value"
                                                 type="number"
                                                 step="0.1"
+                                                min="0"
                                                 value={lastWeight || ""}
                                                 onChange={(e) => setNewGoal({
                                                     ...newGoal,
@@ -804,6 +847,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                                 id="target_value"
                                                 type="number"
                                                 step="0.1"
+                                                min="0.1"
                                                 value={newGoal.target_value || ""}
                                                 onChange={(e) => setNewGoal({
                                                     ...newGoal,
@@ -829,6 +873,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                             <Input
                                                 id="target_date"
                                                 type="date"
+                                                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                                                 value={newGoal.target_date}
                                                 onChange={(e) => setNewGoal({...newGoal, target_date: e.target.value})}
                                                 className="bg-gray-800 border-gray-700"
@@ -855,6 +900,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                         </Button>
                                         <Button variant="ghost" onClick={() => setShowAddGoal(false)}
                                                 className="flex-1">
+                                        <Button variant="ghost" onClick={() => setShowAddGoal(false)} className="flex-1 bg-red-600 hover:bg-red-700 hover:text-white">
                                             Cancelar
                                         </Button>
                                     </div>
