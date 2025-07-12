@@ -316,7 +316,19 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         return age
     }
 
-    const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null
+    const handleNumericCommaInput = (field: keyof typeof newMeasurement, value: string) => {
+
+        const isValid = /^[0-9]*[.]?[0-9]*$/.test(value);
+
+        if (isValid) {
+            setNewMeasurement((prev) => ({
+                ...prev,
+                [field]: value,
+            }));
+        }
+    };
+
+    const latestMeasurement = measurements.length > 0 ? measurements[0] : null
     return (
         <div className="min-h-screen bg-gray-950 text-white pb-20">
             {/* Header simplificado */}
@@ -578,12 +590,11 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                             <Label htmlFor="weight">Peso (kg) *</Label>
                                             <Input
                                                 id="weight"
-                                                type="number"
+                                                type="text"
                                                 step="0.1"
+                                                maxLength={6}
                                                 value={newMeasurement.weight || ""}
-                                                onChange={(e) =>
-                                                    setNewMeasurement({ ...newMeasurement, weight: Number.parseFloat(e.target.value) })
-                                                }
+                                                onChange={(e) => handleNumericCommaInput("weight", e.target.value)}
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
@@ -591,11 +602,10 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                             <Label htmlFor="height">Altura (cm) *</Label>
                                             <Input
                                                 id="height"
-                                                type="number"
+                                                type="text"
+                                                maxLength={6}
                                                 value={newMeasurement.height || ""}
-                                                onChange={(e) =>
-                                                    setNewMeasurement({ ...newMeasurement, height: Number.parseFloat(e.target.value) })
-                                                }
+                                                onChange={(e) => handleNumericCommaInput("height", e.target.value)}
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
@@ -605,28 +615,25 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                             <Label htmlFor="body_fat">% Grasa Corporal</Label>
                                             <Input
                                                 id="body_fat"
-                                                type="number"
-                                                step="0.1"
+                                                type="text"
+                                                maxLength={6}
                                                 value={newMeasurement.body_fat_percentage || ""}
                                                 onChange={(e) =>
-                                                    setNewMeasurement({
-                                                        ...newMeasurement,
-                                                        body_fat_percentage: Number.parseFloat(e.target.value),
-                                                    })
+                                                    handleNumericCommaInput("body_fat_percentage", e.target.value)
                                                 }
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
+
                                         <div className="space-y-2">
                                             <Label htmlFor="muscle_mass">Masa Muscular (kg)</Label>
                                             <Input
                                                 id="muscle_mass"
-                                                type="number"
+                                                type="text"
                                                 step="0.1"
+                                                maxLength={6}
                                                 value={newMeasurement.muscle_mass || ""}
-                                                onChange={(e) =>
-                                                    setNewMeasurement({ ...newMeasurement, muscle_mass: Number.parseFloat(e.target.value) })
-                                                }
+                                                onChange={(e) => handleNumericCommaInput("muscle_mass", e.target.value)}
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
