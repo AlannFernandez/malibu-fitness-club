@@ -898,8 +898,7 @@ export default function ProfileScreen({onBack, onLogout, userData}: ProfileScree
                                         >
                                             {isLoading ? "Guardando..." : "Guardar"}
                                         </Button>
-                                        <Button variant="ghost" onClick={() => setShowAddGoal(false)}
-                                                className="flex-1">
+
                                         <Button variant="ghost" onClick={() => setShowAddGoal(false)} className="flex-1 bg-red-600 hover:bg-red-700 hover:text-white">
                                             Cancelar
                                         </Button>
