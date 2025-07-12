@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { userService } from "@/lib/users";
+import { bodyMeasurementService, BodyMeasurement as SupabaseBodyMeasurement } from "@/lib/body-measurements";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,36 +29,16 @@ import {
     CreditCard,
 } from "lucide-react"
 
+import { userGoalsService } from "@/lib/users-goals";
+import { UserGoal } from "@/interfaces/users-goals";
+
+import { BodyMeasurement } from "@/interfaces/body-measurement";
+import {goalTypeMap} from "@/lib/utils"
+
 interface ProfileScreenProps {
     onBack: () => void
     onLogout: () => void
     userData: any
-}
-
-interface BodyMeasurement {
-    id: string
-    weight: number
-    height: number
-    body_fat_percentage?: number
-    muscle_mass?: number
-    chest?: number
-    waist?: number
-    hips?: number
-    bicep?: number
-    thigh?: number
-    measurement_date: string
-    notes?: string
-}
-
-interface UserGoal {
-    id: string
-    goal_type: "weight_loss" | "weight_gain" | "muscle_gain" | "strength" | "endurance" | "other"
-    target_value: number
-    current_value: number
-    unit: string
-    target_date: string
-    status: "active" | "completed" | "paused" | "cancelled"
-    notes?: string
 }
 
 interface MembershipInfo {
@@ -82,6 +63,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         gender: userData?.gender || "",
         birth_date: userData?.birth_date || "",
     })
+
+    const [lastWeight, setLastWeight] = useState<number | null>(null)
+
 
     // Body measurements
     const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
@@ -115,79 +99,29 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         }
     }, [userData]);
 
+    useEffect(() => {
+        if (measurements.length > 0) {
+            setLastWeight(measurements[measurements.length - 1].weight)
+            setNewGoal({ ...newGoal, current_value: Number(measurements[measurements.length - 1].weight)})
+        } else {
+            setLastWeight(null)
+        }
+    }, [measurements])
+
     const loadProfileData = async () => {
         try {
-            // MOCK: Cargar mediciones corporales
-            const savedMeasurements = localStorage.getItem(`measurements_${userData.id}`)
-            if (savedMeasurements) {
-                setMeasurements(JSON.parse(savedMeasurements))
-            } else {
-                // Mock data inicial
-                const mockMeasurements: BodyMeasurement[] = [
-                    {
-                        id: "1",
-                        weight: 75.5,
-                        height: 175,
-                        body_fat_percentage: 15.2,
-                        muscle_mass: 45.8,
-                        chest: 95,
-                        waist: 82,
-                        hips: 98,
-                        bicep: 35,
-                        thigh: 58,
-                        measurement_date: "2024-01-15",
-                        notes: "Medición inicial",
-                    },
-                    {
-                        id: "2",
-                        weight: 74.2,
-                        height: 175,
-                        body_fat_percentage: 14.8,
-                        muscle_mass: 46.2,
-                        chest: 96,
-                        waist: 80,
-                        hips: 97,
-                        bicep: 36,
-                        thigh: 59,
-                        measurement_date: "2024-02-15",
-                        notes: "Progreso después de 1 mes",
-                    },
-                ]
-                setMeasurements(mockMeasurements)
-                localStorage.setItem(`measurements_${userData.id}`, JSON.stringify(mockMeasurements))
-            }
+            // Obtener mediciones corporales desde Supabase
+            const supabaseMeasurements = await bodyMeasurementService.getMeasurementsByUser(userData.id);
+            setMeasurements(supabaseMeasurements);
 
-            // MOCK: Cargar objetivos
-            const savedGoals = localStorage.getItem(`goals_${userData.id}`)
-            if (savedGoals) {
-                setGoals(JSON.parse(savedGoals))
-            } else {
-                // Mock data inicial
-                const mockGoals: UserGoal[] = [
-                    {
-                        id: "1",
-                        goal_type: "weight_loss",
-                        target_value: 80,
-                        current_value: 74.2,
-                        unit: "kg",
-                        target_date: "2026-06-01",
-                        status: "active",
-                        notes: "Perder peso para el verano",
-                    },
-                    {
-                        id: "2",
-                        goal_type: "muscle_gain",
-                        target_value: 50,
-                        current_value: 46.2,
-                        unit: "kg",
-                        target_date: "2024-12-31",
-                        status: "active",
-                        notes: "Aumentar masa muscular",
-                    },
-                ]
-                setGoals(mockGoals)
-                localStorage.setItem(`goals_${userData.id}`, JSON.stringify(mockGoals))
-            }
+            // Obtener objetivos desde Supabase y castear goal_type y status
+            const supabaseGoals = await userGoalsService.getGoalsByUser(userData.id)
+            const mappedGoals: UserGoal[] = supabaseGoals.map((goal) => ({
+                ...goal,
+                goal_type: goal.goal_type as UserGoal["goal_type"],
+                status: goal.status as UserGoal["status"],
+            }))
+            setGoals(mappedGoals)
 
             // MOCK: Cargar información de membresía
             const mockMembership: MembershipInfo = {
@@ -200,19 +134,18 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
             }
             setMembershipInfo(mockMembership)
 
-            // Cargar datos adicionales del perfil (virus mati)
+            // Cargar datos adicionales del perfil
             const savedProfile = localStorage.getItem(`profile_${userData.id}`)
             if (savedProfile) {
-            const user = await userService.getUserById(userData.id);
-
-                    setProfileData((prev) => ({
-                        ...prev,
-                        full_name: user.full_name || prev.full_name,
-                        phone: user.phone || prev.phone,
-                        gender: user.gender || prev.gender,
-                        birth_date: user.birth_date || prev.birth_date,
-                        email: userData?.email || prev.email, 
-                            }))
+                const user = await userService.getUserById(userData.id);
+                setProfileData((prev) => ({
+                    ...prev,
+                    full_name: user.full_name || prev.full_name,
+                    phone: user.phone || prev.phone,
+                    gender: user.gender || prev.gender,
+                    birth_date: user.birth_date || prev.birth_date,
+                    email: userData?.email || prev.email,
+                }))
             }
         } catch (error) {
             console.error("Error loading profile data:", error)
@@ -249,8 +182,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         setMessage(null)
 
         try {
-            const measurementToAdd: BodyMeasurement = {
-                id: Date.now().toString(),
+            // Guardar medición en Supabase
+            const measurementToAdd: Omit<SupabaseBodyMeasurement, "id" | "created_at"> = {
+                user_id: userData.id,
                 weight: newMeasurement.weight!,
                 height: newMeasurement.height!,
                 body_fat_percentage: newMeasurement.body_fat_percentage || 0,
@@ -262,15 +196,9 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                 thigh: newMeasurement.thigh || 0,
                 measurement_date: newMeasurement.measurement_date!,
                 notes: newMeasurement.notes || "",
-            }
-
-            // Simular delay de red
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            const updatedMeasurements = [measurementToAdd, ...measurements]
-            setMeasurements(updatedMeasurements)
-            localStorage.setItem(`measurements_${userData.id}`, JSON.stringify(updatedMeasurements))
-
+            };
+            const newSaved = await bodyMeasurementService.addMeasurement(measurementToAdd);
+            setMeasurements([newSaved, ...measurements]);
             setNewMeasurement({
                 weight: 0,
                 height: 0,
@@ -286,7 +214,13 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
             setIsLoading(false)
         }
     }
-
+    const getUserGoals = async () => {
+        return await userGoalsService.getGoalsByUser(userData.id)
+    }
+    const disabledUserGoal = async(goalId: string) => { 
+        const goalStatus= {status: 'cancelled'} as UserGoal
+        await userGoalsService.updateGoal(goalId, goalStatus )
+    }
     const handleAddGoal = async () => {
         if (!newGoal.target_value || !newGoal.target_date) {
             setMessage({ type: "error", text: "Valor objetivo y fecha son obligatorios" })
@@ -297,8 +231,15 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         setMessage(null)
 
         try {
-            const goalToAdd: UserGoal = {
-                id: Date.now().toString(),
+
+            const goals= await getUserGoals()
+
+            if (goals.length>0){
+                await disabledUserGoal(goals[0].id)
+            }
+
+            const goalToAdd: Omit<UserGoal, "id" | "created_at" | "updated_at"> = {
+                user_id: userData.id,
                 goal_type: newGoal.goal_type!,
                 target_value: newGoal.target_value!,
                 current_value: newGoal.current_value!,
@@ -308,12 +249,8 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                 notes: newGoal.notes || "",
             }
 
-            // Simular delay de red
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            const updatedGoals = [goalToAdd, ...goals]
-            setGoals(updatedGoals)
-            localStorage.setItem(`goals_${userData.id}`, JSON.stringify(updatedGoals))
+            const savedGoal = await userGoalsService.addGoal(goalToAdd)
+            setGoals([{ ...savedGoal, goal_type: savedGoal.goal_type as UserGoal["goal_type"], status: savedGoal.status as UserGoal["status"] }, ...goals])
 
             setNewGoal({
                 goal_type: "weight_loss",
@@ -379,8 +316,7 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
         return age
     }
 
-    const latestMeasurement = measurements.length > 0 ? measurements[0] : null
-
+    const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null
     return (
         <div className="min-h-screen bg-gray-950 text-white pb-20">
             {/* Header simplificado */}
@@ -816,8 +752,8 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                                 id="current_value"
                                                 type="number"
                                                 step="0.1"
-                                                value={newGoal.current_value || ""}
-                                                onChange={(e) => setNewGoal({ ...newGoal, current_value: Number.parseFloat(e.target.value) })}
+                                                value={lastWeight || ""}
+                                                onChange={(e) => setNewGoal({ ...newGoal, current_value: Number(e.target.value) })}
                                                 className="bg-gray-800 border-gray-700"
                                             />
                                         </div>
@@ -855,6 +791,16 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
                                             />
                                         </div>
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notes">Comentario</Label>
+                                        <Input
+                                            id="notes"
+                                            value={newGoal.notes || ""}
+                                            onChange={(e) => setNewGoal({ ...newGoal, notes: e.target.value })}
+                                            className="bg-gray-800 border-gray-700"
+                                            placeholder="Agrega un comentario opcional"
+                                        />
+                                    </div>
                                     <div className="flex gap-2">
                                         <Button
                                             onClick={handleAddGoal}
@@ -873,13 +819,14 @@ export default function ProfileScreen({ onBack, onLogout, userData }: ProfileScr
 
                         {/* Goals List */}
                         {goals.length > 0 ? (
+            
                             <div className="space-y-4">
                                 {goals.map((goal) => (
                                     <Card key={goal.id} className="bg-gray-900 border-gray-800">
                                         <CardContent className="p-4">
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <h3 className="text-white font-medium capitalize">{goal.goal_type.replace("_", " ")}</h3>
+                                                    <h3 className="text-white font-medium capitalize">{goalTypeMap[goal.goal_type]}</h3>
                                                     <Badge
                                                         variant={goal.status === "active" ? "default" : "secondary"}
                                                         className={goal.status === "active" ? "bg-green-600" : ""}
