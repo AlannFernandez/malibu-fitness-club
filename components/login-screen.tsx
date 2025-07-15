@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dumbbell, Eye, EyeOff, Loader2 } from "lucide-react"
 import { authService } from "@/lib/auth"
 import PWAInstallPrompt from "./pwa-install-prompt"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
 interface LoginScreenProps {
   onLogin: (membershipActive: boolean, email: string, userData: any) => void
@@ -24,7 +25,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [userGym, setUserGym] = useState("")
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+
+
+  const handleSetUserGym = (userGym:string)=>{
+    setUserGym(userGym)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,9 +40,22 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
     try {
       if (isSignUp) {
+
+        if(!userGym || userGym === ""){
+          setError('Debes seleccionar un gym')
+          return
+        }
+
         // Registro
         await authService.signUp(email, password, firstName, lastName)
         setError("Registro exitoso! Revisa tu email para confirmar tu cuenta.")
+
+        await  authService.saveUserDataTemp(
+            userGym,
+            firstName,
+            lastName,
+            email
+        )
         setIsSignUp(false)
       } else {
         // Login
@@ -90,9 +110,28 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                   <>
+                    <div>
+                      <Label htmlFor="userGym" className="text-gray-300">
+                        Gym
+                      </Label>
+                      <Select
+                          value={userGym}
+                          onValueChange={(value) => handleSetUserGym( value )}
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectValue placeholder="Seleccionar Gym" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700">
+                          <SelectItem value="malibu_fitness_club" className="text-white hover:bg-gray-700">
+                            Malibu Fitness Club
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="fullName" className="text-gray-300">
-                        Nombre Completo
+                        Nombre
                       </Label>
                       <Input
                           id="fullName"
@@ -137,7 +176,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-300">
+              <Label htmlFor="password" className="text-gray-300">
                   Contraseña
                 </Label>
                 <div className="relative">
