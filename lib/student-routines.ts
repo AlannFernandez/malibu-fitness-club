@@ -36,6 +36,7 @@ export interface StudentRoutine {
 export interface DayRoutine {
     title: string
     duration: string
+    routine_id?: string
     exercises: {
         id: string
         name: string
@@ -324,6 +325,7 @@ class StudentRoutineService {
                         title: dayTitle,
                         duration: estimatedDuration > 0 ? `${estimatedDuration}-${maxDuration} min` : "Descanso",
                         exercises: dayExercises,
+                        routine_id: currentRoutine.id,
                     }
                 }
             })

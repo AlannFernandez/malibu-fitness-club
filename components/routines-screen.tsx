@@ -38,6 +38,8 @@ import SettingsScreen from "./settings-screen"
 
 import { studentRoutineService, type WeeklyRoutine } from "@/lib/student-routines"
 import { authService } from "@/lib/auth"
+import { workoutService } from "@/lib/workout"
+import { workoutExerciseService } from "@/lib/workout-excercise"
 
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
@@ -92,7 +94,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   const [currentSetData, setCurrentSetData] = useState({ weight: "", reps: "" })
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null)
   const [activeWorkoutDay, setActiveWorkoutDay] = useState<string | null>(null)
-
+  const [workoutId, setWorkoutId] = useState<string | null>(null)
   // Estados para el cronómetro de descanso
   const [restTimer, setRestTimer] = useState<number>(0)
   const [isResting, setIsResting] = useState(false)
@@ -269,12 +271,50 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     const now = new Date()
     const exerciseKey = `${selectedDay}-${exerciseId}`
 
+    function formatDateTime(date: Date): string {
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      const yyyy = date.getFullYear();
+      const mm = pad(date.getMonth() + 1);
+      const dd = pad(date.getDate());
+      const hh = pad(date.getHours());
+      const min = pad(date.getMinutes());
+      const ss = pad(date.getSeconds());
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+    }
+
+    const getFirstRoutineId = (weeklyRoutine: Record<string, any>) => {
+      for (const dayKey in weeklyRoutine) {
+        const dayRoutine = weeklyRoutine[dayKey];
+        if (dayRoutine && dayRoutine.routine_id) {
+          return dayRoutine.routine_id;
+        }
+      }
+      return null;
+    };
+
+    const saveWorkout = async ({workoutDate, startTime, status, routineId}) => {
+      await workoutService.createWorkout(userData.id, {
+        workout_date: workoutDate,
+        start_time: startTime,
+        status: status,
+        routine_id: routineId,
+      })  
+      const workoutId = await workoutService.getActiveWorkout(userData.id, workoutDate, routineId, startTime)
+      setWorkoutId(workoutId?.id)
+    }
+
+    const saveWorkoutExercise = async (exercise) => {
+      await workoutExerciseService.createWorkoutExercise(workoutId, exercise)
+    }
+
     // Si es el primer ejercicio del día, iniciar el workout
     if (!workoutStartTime) {
       setWorkoutStartTime(now)
       setActiveWorkoutDay(selectedDay)
+      const workout = saveWorkout({ workoutDate: now.toISOString().slice(0, 10), startTime: formatDateTime(now), status: "in_progress", routineId: getFirstRoutineId(routineData) })
     }
 
+    // Actualizar el progreso del ejercicio
     setExerciseProgress((prev) => ({
       ...prev,
       [exerciseKey]: {
