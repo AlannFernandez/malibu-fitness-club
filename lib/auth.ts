@@ -39,8 +39,6 @@ export const authService = {
     async signUp(
         email: string,
     password: string,
-    firstName: string,
-    lastName: string
 ) {
     // Paso 1: Registro en auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
