@@ -93,4 +93,26 @@ export const authService = {
 
         return data ? "active" : "expired"
     },
+
+    async saveUserDataTemp(
+        gymId: string,
+        firstName: string,
+        lastName: string,
+        email: string
+    ): Promise<void> {
+
+        const { data, error } = await supabase
+            .from('user_data_temp')
+            .insert([
+                {
+                    gym_id: gymId,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email
+                },
+            ])
+
+        if (error) throw new Error(error.message);
+
+    }
 }
