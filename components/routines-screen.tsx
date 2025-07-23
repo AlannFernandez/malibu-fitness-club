@@ -35,11 +35,8 @@ import {
 import ProgressScreen from "./progress-screen"
 import ProfileScreen from "./profile-screen"
 import SettingsScreen from "./settings-screen"
-
 import { studentRoutineService, type WeeklyRoutine } from "@/lib/student-routines"
-import { authService } from "@/lib/auth"
 import { workoutService } from "@/lib/workout"
-import { workoutExerciseService } from "@/lib/workout-excercise"
 
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
@@ -95,6 +92,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null)
   const [activeWorkoutDay, setActiveWorkoutDay] = useState<string | null>(null)
   const [workoutId, setWorkoutId] = useState<string | null>(null)
+
   // Estados para el cronómetro de descanso
   const [restTimer, setRestTimer] = useState<number>(0)
   const [isResting, setIsResting] = useState(false)
@@ -103,34 +101,34 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   // Cargar rutina del estudiante
   useEffect(() => {
     const loadRoutine = async () => {
-      if (!userData?.id) return;
-      
-      setIsLoading(true);
-      setError(null);
-      
+      if (!userData?.id) return
+
+      setIsLoading(true)
+      setError(null)
+
       try {
-        const weeklyRoutine = await studentRoutineService.getCurrentWeeklyRoutine(userData.id);
+        const weeklyRoutine = await studentRoutineService.getCurrentWeeklyRoutine(userData.id)
         if (weeklyRoutine) {
-          setRoutineData(weeklyRoutine);
+          setRoutineData(weeklyRoutine)
         } else {
-          setError("No se encontró una rutina activa");
+          setError("No se encontró una rutina activa")
         }
       } catch (err) {
-        setError("Error al cargar la rutina");
-        console.error(err);
+        setError("Error al cargar la rutina")
+        console.error(err)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    loadRoutine();
-  }, [userData?.id]);
+    loadRoutine()
+  }, [userData?.id])
 
   const currentRoutine = routineData?.[selectedDay as keyof WeeklyRoutine] || {
     title: "Sin rutina",
     duration: "0 min",
-    exercises: []
-  };
+    exercises: [],
+  }
 
   // Función para obtener el día actual (simulado - en producción sería new Date().getDay())
   const getCurrentDay = (): string => {
@@ -158,6 +156,53 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
       const num = Number.parseInt(cleanRest.replace(/[^0-9]/g, ""))
       return isNaN(num) ? 120 : num // default 2 minutos
     }
+  }
+
+  // Función para verificar si todos los ejercicios del día están completados
+  const areAllExercisesCompleted = () => {
+    if (!routineData || !activeWorkoutDay) return false
+
+    const dayRoutine = routineData[activeWorkoutDay as keyof WeeklyRoutine]
+    if (!dayRoutine || dayRoutine.exercises.length === 0) return false
+
+    return dayRoutine.exercises.every((exercise) => {
+      const exerciseKey = `${activeWorkoutDay}-${exercise.id}`
+      const progress = exerciseProgress[exerciseKey]
+      return progress && progress.status === "completed"
+    })
+  }
+
+  // Función para finalizar el workout completo
+  const finishWorkout = async () => {
+    if (!workoutId || !workoutStartTime) return
+
+    const endTime = new Date()
+    const totalWorkoutTime = Math.floor((endTime.getTime() - workoutStartTime.getTime()) / 1000)
+
+    console.log("🏁 FINALIZANDO WORKOUT COMPLETO:", {
+      workoutId,
+      startTime: workoutStartTime.toISOString(),
+      endTime: endTime.toISOString(),
+      totalTime: totalWorkoutTime,
+      day: activeWorkoutDay,
+      status: "completed",
+    })
+
+    // Simular llamada a Supabase para actualizar el workout
+    console.log("📝 Actualizando workout en Supabase:", {
+      table: "workouts",
+      id: workoutId,
+      data: {
+        end_time: endTime.toISOString(),
+        status: "completed",
+        total_time: totalWorkoutTime,
+      },
+    })
+
+    // Limpiar estados del workout
+    setWorkoutStartTime(null)
+    setActiveWorkoutDay(null)
+    setWorkoutId(null)
   }
 
   // Efecto para el cronómetro de descanso
@@ -272,46 +317,68 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     const exerciseKey = `${selectedDay}-${exerciseId}`
 
     function formatDateTime(date: Date): string {
-      const pad = (n: number) => n.toString().padStart(2, "0");
-      const yyyy = date.getFullYear();
-      const mm = pad(date.getMonth() + 1);
-      const dd = pad(date.getDate());
-      const hh = pad(date.getHours());
-      const min = pad(date.getMinutes());
-      const ss = pad(date.getSeconds());
-      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+      const pad = (n: number) => n.toString().padStart(2, "0")
+      const yyyy = date.getFullYear()
+      const mm = pad(date.getMonth() + 1)
+      const dd = pad(date.getDate())
+      const hh = pad(date.getHours())
+      const min = pad(date.getMinutes())
+      const ss = pad(date.getSeconds())
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
     }
 
     const getFirstRoutineId = (weeklyRoutine: Record<string, any>) => {
       for (const dayKey in weeklyRoutine) {
-        const dayRoutine = weeklyRoutine[dayKey];
+        const dayRoutine = weeklyRoutine[dayKey]
         if (dayRoutine && dayRoutine.routine_id) {
-          return dayRoutine.routine_id;
+          return dayRoutine.routine_id
         }
       }
-      return null;
-    };
+      return null
+    }
 
-    const saveWorkout = async ({workoutDate, startTime, status, routineId}) => {
+    const saveWorkout = async ({ workoutDate, startTime, status, routineId }) => {
+      console.log("🚀 INICIANDO WORKOUT:", {
+        userId: userData.id,
+        workoutDate,
+        startTime,
+        status,
+        routineId,
+      })
+
+      // Simular llamada a Supabase para crear workout
+      console.log("📝 Creando workout en Supabase:", {
+        table: "workouts",
+        data: {
+          user_id: userData.id,
+          workout_date: workoutDate,
+          start_time: startTime,
+          status: status,
+          routine_id: routineId,
+        },
+      })
+
       await workoutService.createWorkout(userData.id, {
         workout_date: workoutDate,
         start_time: startTime,
         status: status,
         routine_id: routineId,
-      })  
+      })
+
       const workoutId = await workoutService.getActiveWorkout(userData.id, workoutDate, routineId, startTime)
       setWorkoutId(workoutId?.id)
-    }
-
-    const saveWorkoutExercise = async (exercise) => {
-      await workoutExerciseService.createWorkoutExercise(workoutId, exercise)
     }
 
     // Si es el primer ejercicio del día, iniciar el workout
     if (!workoutStartTime) {
       setWorkoutStartTime(now)
       setActiveWorkoutDay(selectedDay)
-      const workout = saveWorkout({ workoutDate: now.toISOString().slice(0, 10), startTime: formatDateTime(now), status: "in_progress", routineId: getFirstRoutineId(routineData) })
+      const workout = saveWorkout({
+        workoutDate: now.toISOString().slice(0, 10),
+        startTime: formatDateTime(now),
+        status: "in_progress",
+        routineId: getFirstRoutineId(routineData),
+      })
     }
 
     // Actualizar el progreso del ejercicio
@@ -354,12 +421,37 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   }
 
   // Función para completar una serie
-  const completeSet = () => {
+  const completeSet = async () => {
     if (!activeExerciseId) return
 
     const progress = exerciseProgress[activeExerciseId]
     const currentSetIndex = progress.currentSet
     const now = new Date()
+
+    // Guardar la serie completada
+    const setData = {
+      workoutId,
+      exerciseId: progress.exerciseId,
+      setNumber: currentSetIndex + 1,
+      weight: currentSetData.weight,
+      reps: currentSetData.reps,
+      completedAt: now.toISOString(),
+    }
+
+    console.log("💪 SERIE COMPLETADA:", setData)
+
+    // Simular llamada a Supabase para guardar la serie
+    console.log("📝 Guardando serie en Supabase:", {
+      table: "workout_exercises",
+      data: {
+        workout_id: workoutId,
+        exercise_id: progress.exerciseId,
+        set_number: currentSetIndex + 1,
+        weight: currentSetData.weight,
+        reps: currentSetData.reps,
+        completed_at: now.toISOString(),
+      },
+    })
 
     setExerciseProgress((prev) => {
       const updatedProgress = { ...prev }
@@ -398,10 +490,25 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         exerciseData.totalTime = exerciseData.startTime
             ? Math.floor((now.getTime() - exerciseData.startTime.getTime()) / 1000)
             : 0
+
+        console.log("✅ EJERCICIO COMPLETADO:", {
+          exerciseId: progress.exerciseId,
+          totalTime: exerciseData.totalTime,
+          completedAt: now.toISOString(),
+        })
+
         updatedProgress[activeExerciseId] = exerciseData
 
         setActiveExerciseId(null)
         setShowSetDialog(false)
+
+        // Verificar si todos los ejercicios están completados después de actualizar el estado
+        setTimeout(() => {
+          if (areAllExercisesCompleted()) {
+            finishWorkout()
+          }
+        }, 100)
+
         return updatedProgress
       }
     })
@@ -641,16 +748,15 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                           <p className="text-orange-200 font-semibold">Tiempo de descanso</p>
                           <p className="text-orange-300 text-sm">
                             {/* Buscar el ejercicio en el día correcto */}
-                            {
-                              Object.entries(routineData)
-                                  .map(([dayKey, dayRoutine]) => {
-                                    const exercise = dayRoutine.exercises.find(
-                                        (ex) => `${dayKey}-${ex.id}` === restingExerciseId,
-                                    )
-                                    return exercise ? exercise.name : null
-                                  })
-                                  .filter(Boolean)[0]
-                            }
+                            {routineData &&
+                                Object.entries(routineData)
+                                    .map(([dayKey, dayRoutine]) => {
+                                      const exercise = dayRoutine.exercises.find(
+                                          (ex) => `${dayKey}-${ex.id}` === restingExerciseId,
+                                      )
+                                      return exercise ? exercise.name : null
+                                    })
+                                    .filter(Boolean)[0]}
                           </p>
                         </div>
                       </div>
@@ -975,7 +1081,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
           <DialogContent className="bg-gray-900 border-gray-700 text-white">
             <DialogHeader>
               <DialogTitle className="text-white">
-                {activeExerciseId && (
+                {activeExerciseId && routineData && (
                     <>
                       {/* Buscar el ejercicio correcto basado en la clave */}
                       {
@@ -1031,15 +1137,14 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                       </p>
                       <p>Series completadas: {exerciseProgress[activeExerciseId].sets.filter((s) => s.completed).length}</p>
                       <p className="text-orange-400 mt-1">
-                        Descanso después de esta serie: {/* Buscar el tiempo de descanso del ejercicio correcto */}
-                        {
-                          Object.entries(routineData)
-                              .map(([dayKey, dayRoutine]) => {
-                                const exercise = dayRoutine.exercises.find((ex) => `${dayKey}-${ex.id}` === activeExerciseId)
-                                return exercise ? exercise.rest : null
-                              })
-                              .filter(Boolean)[0]
-                        }
+                        Descanso después de esta serie:{" "}
+                        {routineData &&
+                            Object.entries(routineData)
+                                .map(([dayKey, dayRoutine]) => {
+                                  const exercise = dayRoutine.exercises.find((ex) => `${dayKey}-${ex.id}` === activeExerciseId)
+                                  return exercise ? exercise.rest : null
+                                })
+                                .filter(Boolean)[0]}
                       </p>
                     </div>
                   </div>
