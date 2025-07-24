@@ -439,7 +439,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     }
 
     console.log("💪 SERIE COMPLETADA:", setData)
-    console.log(progress)
+
     // Simular llamada a Supabase para guardar la serie
     const workoutExcercise: WorkoutExercise={
       workout_id: workoutId,

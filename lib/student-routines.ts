@@ -300,6 +300,7 @@ class StudentRoutineService {
                         .sort((a, b) => a.order_in_day - b.order_in_day)
                         .map((re) => ({
                             id: re.id,
+                            exercise_id: re.exercise_id,
                             name: re.exercise.name,
                             sets: re.sets_override || re.exercise.sets_suggested || "3",
                             reps: re.reps_override || re.exercise.reps_suggested || "12",
