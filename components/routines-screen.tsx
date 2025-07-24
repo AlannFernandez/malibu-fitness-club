@@ -37,7 +37,7 @@ import ProfileScreen from "./profile-screen"
 import SettingsScreen from "./settings-screen"
 import { studentRoutineService, type WeeklyRoutine } from "@/lib/student-routines"
 import { workoutService } from "@/lib/workout"
-
+import { WorkoutExercise, workoutExerciseService } from "@/lib/workout-excercise"
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
   { id: "mar", name: "MAR", fullName: "Martes" },
@@ -253,7 +253,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
             const exerciseKey = `${dayKey}-${exercise.id}`
 
             progress[exerciseKey] = {
-              exerciseId: exercise.id,
+              exerciseId: exercise.exercise_id,
               dayId: dayKey,
               status: "not_started",
               currentSet: 0,
@@ -439,9 +439,20 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     }
 
     console.log("💪 SERIE COMPLETADA:", setData)
-
+    console.log(progress)
     // Simular llamada a Supabase para guardar la serie
-    console.log("📝 Guardando serie en Supabase:", {
+    const workoutExcercise: WorkoutExercise={
+      workout_id: workoutId,
+        exercise_id: progress.exerciseId,
+        sets_completed: currentSetIndex + 1,
+        weight_used: [currentSetData.weight],
+        reps_completed: [currentSetData.reps],
+        completed_at: now.toISOString(),
+    }
+    await workoutExerciseService.createWorkoutExercise(workoutExcercise)
+
+
+    /*console.log("📝 Guardando serie en Supabase:", {
       table: "workout_exercises",
       data: {
         workout_id: workoutId,
@@ -451,7 +462,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         reps: currentSetData.reps,
         completed_at: now.toISOString(),
       },
-    })
+    })*/
 
     setExerciseProgress((prev) => {
       const updatedProgress = { ...prev }
