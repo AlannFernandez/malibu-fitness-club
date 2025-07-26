@@ -28,5 +28,13 @@ export const workoutService = {
             .single()
         if(error) throw Error(error.message)
         return workout
+    },
+    async updateWorkout(workoutId: string, workout: any) {
+        const { data, error } = await supabase
+            .from('workouts')
+            .update({...workout})
+            .eq('id', workoutId)
+        if (error) throw Error(error.message)
     }
+
 }
