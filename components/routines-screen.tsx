@@ -37,7 +37,7 @@ import ProfileScreen from "./profile-screen"
 import SettingsScreen from "./settings-screen"
 import { studentRoutineService, type WeeklyRoutine } from "@/lib/student-routines"
 import { workoutService } from "@/lib/workout"
-
+import { WorkoutExercise, workoutExerciseService } from "@/lib/workout-excercise"
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
   { id: "mar", name: "MAR", fullName: "Martes" },
@@ -168,7 +168,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     return dayRoutine.exercises.every((exercise) => {
       const exerciseKey = `${activeWorkoutDay}-${exercise.id}`
       const progress = exerciseProgress[exerciseKey]
-      return progress && progress.status === "completed"
+      console.log(exerciseProgress[exerciseKey])
+      return progress?.status === "completed"
     })
   }
 
@@ -187,6 +188,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
       day: activeWorkoutDay,
       status: "completed",
     })
+    await workoutService.updateWorkout(workoutId, {end_time: endTime, status:'completed'})
 
     // Simular llamada a Supabase para actualizar el workout
     console.log("📝 Actualizando workout en Supabase:", {
@@ -253,7 +255,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
             const exerciseKey = `${dayKey}-${exercise.id}`
 
             progress[exerciseKey] = {
-              exerciseId: exercise.id,
+              exerciseId: exercise.exercise_id,
               dayId: dayKey,
               status: "not_started",
               currentSet: 0,
@@ -441,17 +443,15 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
     console.log("💪 SERIE COMPLETADA:", setData)
 
     // Simular llamada a Supabase para guardar la serie
-    console.log("📝 Guardando serie en Supabase:", {
-      table: "workout_exercises",
-      data: {
-        workout_id: workoutId,
+    const workoutExcercise: WorkoutExercise={
+      workout_id: workoutId,
         exercise_id: progress.exerciseId,
-        set_number: currentSetIndex + 1,
-        weight: currentSetData.weight,
-        reps: currentSetData.reps,
+        sets_completed: currentSetIndex + 1,
+        weight_used: [currentSetData.weight],
+        reps_completed: [currentSetData.reps],
         completed_at: now.toISOString(),
-      },
-    })
+    }
+    await workoutExerciseService.createWorkoutExercise(workoutExcercise)
 
     setExerciseProgress((prev) => {
       const updatedProgress = { ...prev }
@@ -502,12 +502,18 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         setActiveExerciseId(null)
         setShowSetDialog(false)
 
-        // Verificar si todos los ejercicios están completados después de actualizar el estado
-        setTimeout(() => {
-          if (areAllExercisesCompleted()) {
-            finishWorkout()
-          }
-        }, 100)
+        // Verificar si todos los ejercicios están completados DESPUÉS de actualizar el estado
+        const dayRoutine = routineData?.[activeWorkoutDay as keyof WeeklyRoutine]
+        const allCompleted = dayRoutine?.exercises.every(exercise => {
+          const key = `${activeWorkoutDay}-${exercise.id}`
+          const progress = updatedProgress[key] // ¡Usa el estado ACTUALIZADO!
+          return progress?.status === "completed"
+        })
+        console.log("🔍 Verificando si todos están completados:", allCompleted)
+
+        if (allCompleted) {
+          finishWorkout()
+        }
 
         return updatedProgress
       }
@@ -781,7 +787,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
 
               {/* Viewing Mode Alert */}
               {isViewingMode && (
-                  <Alert className="mx-4 mt-4 border-blue-800 bg-blue-900/20">
+                <div className="mx-4">
+                  <Alert className="mt-4 border-blue-800 bg-blue-900/20">
                     <Eye className="h-4 w-4 text-blue-400" />
                     <AlertDescription className="text-blue-200">
                       Estás viendo los ejercicios de {daysOfWeek.find((d) => d.id === selectedDay)?.fullName}. Solo puedes
@@ -793,6 +800,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                       )}
                     </AlertDescription>
                   </Alert>
+                </div>
+                  
               )}
 
               {/* Content */}
