@@ -39,8 +39,6 @@ export const authService = {
     async signUp(
         email: string,
     password: string,
-    firstName: string,
-    lastName: string
 ) {
     // Paso 1: Registro en auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -95,4 +93,26 @@ export const authService = {
 
         return data ? "active" : "expired"
     },
+
+    async saveUserDataTemp(
+        gymId: string,
+        firstName: string,
+        lastName: string,
+        email: string
+    ): Promise<void> {
+
+        const { data, error } = await supabase
+            .from('user_data_temp')
+            .insert([
+                {
+                    gym_id: gymId,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email
+                },
+            ])
+
+        if (error) throw new Error(error.message);
+
+    }
 }

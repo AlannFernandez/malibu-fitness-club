@@ -36,6 +36,7 @@ export interface StudentRoutine {
 export interface DayRoutine {
     title: string
     duration: string
+    routine_id?: string
     exercises: {
         id: string
         name: string
@@ -299,6 +300,7 @@ class StudentRoutineService {
                         .sort((a, b) => a.order_in_day - b.order_in_day)
                         .map((re) => ({
                             id: re.id,
+                            exercise_id: re.exercise_id,
                             name: re.exercise.name,
                             sets: re.sets_override || re.exercise.sets_suggested || "3",
                             reps: re.reps_override || re.exercise.reps_suggested || "12",
@@ -324,6 +326,7 @@ class StudentRoutineService {
                         title: dayTitle,
                         duration: estimatedDuration > 0 ? `${estimatedDuration}-${maxDuration} min` : "Descanso",
                         exercises: dayExercises,
+                        routine_id: currentRoutine.id,
                     }
                 }
             })
