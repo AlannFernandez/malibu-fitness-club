@@ -26,28 +26,56 @@ interface UserData {
 
 export default function GymApp() {
   const [userStatus, setUserStatus] = useState<UserStatus>("loading")
-  const [userData, setUserData] = useState<UserData | null>(null)
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [teacherView, setTeacherView] = useState<TeacherView>("dashboard")
 
   useEffect(() => {
-    // Verificar sesión actual
-    checkCurrentSession()
+    let isMounted = true;
 
-    // Escuchar cambios de autenticación
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        await handleAuthStateChange(session.user.id)
-      } else if (event === "SIGNED_OUT") {
-        setUserStatus("logged-out")
-        setUserData(null)
-        setTeacherView("dashboard")
+    const verifySession = async () => {
+      try {
+        const { user, userData: currentUserData } = await authService.getCurrentUser();
+
+        if (!isMounted) return;
+
+        if (user && currentUserData) {
+          setUserData(currentUserData);
+
+          if (currentUserData.role === "student") {
+            const membershipStatus = await authService.checkMembershipStatus(user.id);
+            if (!isMounted) return;
+            setUserStatus(membershipStatus === "active" ? "logged-in-active" : "logged-in-expired");
+          } else {
+            setUserStatus("logged-in-active");
+          }
+        } else {
+          setUserStatus("logged-out");
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+        if (isMounted) setUserStatus("logged-out");
       }
-    })
+    };
 
-    return () => subscription.unsubscribe()
-  }, [])
+    verifySession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      if (event === "SIGNED_IN" && session?.user) {
+        await verifySession();
+      } else if (event === "SIGNED_OUT") {
+        setUserStatus("logged-out");
+        setUserData(null);
+        setTeacherView("dashboard");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const checkCurrentSession = async () => {
     try {
@@ -102,7 +130,7 @@ export default function GymApp() {
       await authService.signOut()
       setUserStatus("logged-out")
       setUserData(null)
-      setTeacherView("dashboard")
+      // setTeacherView("dashboard")
     } catch (error) {
       console.error("Error logging out:", error)
     }

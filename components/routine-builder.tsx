@@ -726,7 +726,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                                                 onDragStart={(e) => handleDragStartFromDay(e, exercise, day.id, index)}
                                                 onDragOver={(e) => handleDragOverExercise(e, day.id, index)}
                                                 onDrop={(e) => handleDropOnExercise(e, day.id, index)}
-                                                className="p-3 bg-gray-800 rounded-lg border border-gray-700 relative group cursor-move hover:shadow-lg transition-all"
+                                                className="p-3 bg-gray-800 rounded-lg border border-gray-700 relative group cursor-grab hover:shadow-lg transition-all"
                                             >
                                               {/* Indicador de modificación */}
                                               {exercise.isModified && (
