@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   ArrowLeft,
   Search,
@@ -28,6 +29,8 @@ import {
   X,
   CheckCircle,
   Sparkles,
+  Calendar,
+  Timer,
 } from "lucide-react"
 import { exerciseService } from "@/lib/excercise"
 import { userService } from "@/lib/users"
@@ -67,6 +70,13 @@ interface Student {
   lastActivity: string
 }
 
+interface RoutineDuration {
+  value: string
+  label: string
+  weeks: number
+  description: string
+}
+
 const daysOfWeek = [
   { id: "lun", name: "Lunes", shortName: "LUN" },
   { id: "mar", name: "Martes", shortName: "MAR" },
@@ -75,6 +85,19 @@ const daysOfWeek = [
   { id: "vie", name: "Viernes", shortName: "VIE" },
   { id: "sab", name: "Sábado", shortName: "SÁB" },
   { id: "dom", name: "Domingo", shortName: "DOM" },
+]
+
+const routineDurations: RoutineDuration[] = [
+  { value: "1_week", label: "1 Semana", weeks: 1, description: "Rutina de prueba o introducción" },
+  { value: "2_weeks", label: "2 Semanas", weeks: 2, description: "Rutina de adaptación" },
+  { value: "3_weeks", label: "3 Semanas", weeks: 3, description: "Rutina de progresión corta" },
+  { value: "4_weeks", label: "1 Mes", weeks: 4, description: "Rutina mensual estándar" },
+  { value: "6_weeks", label: "6 Semanas", weeks: 6, description: "Rutina de desarrollo" },
+  { value: "8_weeks", label: "2 Meses", weeks: 8, description: "Rutina de transformación" },
+  { value: "12_weeks", label: "3 Meses", weeks: 12, description: "Rutina de especialización" },
+  { value: "16_weeks", label: "4 Meses", weeks: 16, description: "Rutina de preparación avanzada" },
+  { value: "24_weeks", label: "6 Meses", weeks: 24, description: "Rutina de largo plazo" },
+  { value: "ongoing", label: "Indefinida", weeks: 0, description: "Rutina permanente hasta cambio manual" },
 ]
 
 interface RoutineBuilderProps {
@@ -95,8 +118,12 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
     dom: [],
   })
   const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null)
+  const [draggedFromLibrary, setDraggedFromLibrary] = useState<boolean>(false)
+  const [draggedFromDay, setDraggedFromDay] = useState<string | null>(null)
+  const [draggedIndex, setDraggedIndex] = useState<number>(-1)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [routineName, setRoutineName] = useState("")
+  const [routineDuration, setRoutineDuration] = useState<string>("")
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([])
   const [allStudents, setAllStudents] = useState<Student[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -182,35 +209,111 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
           student.email.toLowerCase().includes(searchStudents.toLowerCase()),
   )
 
-  const handleDragStart = (e: React.DragEvent, exercise: Exercise) => {
+  // Drag and drop para ejercicios de la biblioteca
+  const handleDragStartFromLibrary = (e: React.DragEvent, exercise: Exercise) => {
     setDraggedExercise(exercise)
+    setDraggedFromLibrary(true)
+    setDraggedFromDay(null)
+    setDraggedIndex(-1)
     e.dataTransfer.effectAllowed = "copy"
+  }
+
+  // Drag and drop para reordenar ejercicios dentro de los días
+  const handleDragStartFromDay = (e: React.DragEvent, exercise: Exercise, dayId: string, index: number) => {
+    setDraggedExercise(exercise)
+    setDraggedFromLibrary(false)
+    setDraggedFromDay(dayId)
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = "move"
   }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    e.dataTransfer.dropEffect = "copy"
+    if (draggedFromLibrary) {
+      e.dataTransfer.dropEffect = "copy"
+    } else {
+      e.dataTransfer.dropEffect = "move"
+    }
   }
 
-  const handleDrop = (e: React.DragEvent, dayId: string) => {
+  const handleDrop = (e: React.DragEvent, dayId: string, dropIndex?: number) => {
     e.preventDefault()
-    if (draggedExercise) {
+
+    if (!draggedExercise) return
+
+    if (draggedFromLibrary) {
+      // Agregar nuevo ejercicio desde la biblioteca
       const newExercise = {
         ...draggedExercise,
         id: `${draggedExercise.id}-${Date.now()}`,
         exercise_id: draggedExercise.id,
-        // Inicializar valores personalizados con los valores originales
         custom_sets: draggedExercise.sets,
         custom_reps: draggedExercise.reps,
         custom_weight: draggedExercise.weight || "",
         custom_rest: draggedExercise.rest || "",
         isModified: false,
       }
+
       setRoutines((prev) => ({
         ...prev,
         [dayId]: [...prev[dayId], newExercise],
       }))
-      setDraggedExercise(null)
+    } else if (draggedFromDay && draggedIndex !== -1) {
+      // Reordenar ejercicio dentro del mismo día o mover entre días
+      if (draggedFromDay === dayId) {
+        // Reordenar dentro del mismo día
+        setRoutines((prev) => {
+          const dayExercises = [...prev[dayId]]
+          const [movedExercise] = dayExercises.splice(draggedIndex, 1)
+
+          const targetIndex = dropIndex !== undefined ? dropIndex : dayExercises.length
+          dayExercises.splice(targetIndex, 0, movedExercise)
+
+          return {
+            ...prev,
+            [dayId]: dayExercises,
+          }
+        })
+      } else {
+        // Mover entre días diferentes
+        setRoutines((prev) => {
+          const sourceDay = [...prev[draggedFromDay]]
+          const targetDay = [...prev[dayId]]
+
+          const [movedExercise] = sourceDay.splice(draggedIndex, 1)
+          targetDay.push(movedExercise)
+
+          return {
+            ...prev,
+            [draggedFromDay]: sourceDay,
+            [dayId]: targetDay,
+          }
+        })
+      }
+    }
+
+    // Reset drag state
+    setDraggedExercise(null)
+    setDraggedFromLibrary(false)
+    setDraggedFromDay(null)
+    setDraggedIndex(-1)
+  }
+
+  const handleDragOverExercise = (e: React.DragEvent, dayId: string, index: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!draggedFromLibrary && draggedFromDay === dayId && draggedIndex !== -1) {
+      e.dataTransfer.dropEffect = "move"
+    }
+  }
+
+  const handleDropOnExercise = (e: React.DragEvent, dayId: string, index: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!draggedFromLibrary && draggedFromDay === dayId && draggedIndex !== -1) {
+      handleDrop(e, dayId, index)
     }
   }
 
@@ -285,9 +388,13 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
     })
     setSelectedStudents([])
     setRoutineName("")
+    setRoutineDuration("")
     setSearchTerm("")
     setSearchStudents("")
     setDraggedExercise(null)
+    setDraggedFromLibrary(false)
+    setDraggedFromDay(null)
+    setDraggedIndex(-1)
     setEditingExercise(null)
     setEditForm({ sets: "", reps: "", weight: "", rest: "" })
   }
@@ -298,9 +405,23 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
       const { user } = await authService.getCurrentUser()
       if (!user) throw new Error("Usuario no autenticado")
 
+      // Calcular fechas de inicio y fin basadas en la duración seleccionada
+      const selectedDurationData = routineDurations.find((d) => d.value === routineDuration)
+      const startDate = new Date()
+      let endDate: Date | null = null
+
+      if (selectedDurationData && selectedDurationData.weeks > 0) {
+        endDate = new Date(startDate)
+        endDate.setDate(endDate.getDate() + selectedDurationData.weeks * 7)
+      }
+
       const routine = await routineService.createRoutine({
         name: routineName,
         createdBy: user.id,
+        duration: routineDuration,
+        durationWeeks: selectedDurationData?.weeks || null,
+        startDate: startDate.toISOString(),
+        endDate: endDate?.toISOString() || null,
       })
 
       const allExercises = Object.entries(routines).flatMap(([dayKey, exercises]) =>
@@ -326,6 +447,8 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
           routineId: routine.id,
           assignedBy: user.id,
           studentIds: selectedStudents,
+          startDate: startDate.toISOString(),
+          endDate: endDate?.toISOString() || null,
         })
       }
 
@@ -355,6 +478,9 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
     rest: exercise.custom_rest || exercise.rest,
   })
 
+  // Obtener información de la duración seleccionada
+  const selectedDurationInfo = routineDurations.find((d) => d.value === routineDuration)
+
   return (
       <div className="min-h-screen bg-gray-950 text-white">
         {/* Mensaje de éxito */}
@@ -365,61 +491,74 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                 <AlertDescription className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-green-400" />
                   <span className="font-medium">¡Rutina creada exitosamente!</span>
-                  <span className="text-green-300">Se ha asignado a {selectedStudents.length} estudiantes</span>
+                  <span className="text-green-300">
+                Se ha asignado a {selectedStudents.length} estudiantes
+                    {selectedDurationInfo && selectedDurationInfo.weeks > 0 && ` por ${selectedDurationInfo.weeks} semanas`}
+              </span>
                 </AlertDescription>
               </Alert>
             </div>
         )}
 
         {/* Header */}
-        <div className="bg-gray-900 border-b border-gray-800 p-6">
+        <div className="bg-gray-900 border-b border-gray-800 p-4 lg:p-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-400 hover:text-white">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                  <Target className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <Target className="w-4 h-4 lg:w-6 lg:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Constructor de Rutinas</h1>
-                  <p className="text-gray-400">Arrastra ejercicios y asigna a estudiantes</p>
+                  <h1 className="text-lg lg:text-2xl font-bold">Constructor de Rutinas</h1>
+                  <p className="text-gray-400 text-sm hidden lg:block">Arrastra ejercicios y asigna a estudiantes</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex items-center gap-2 lg:gap-4">
+              <div className="text-right hidden lg:block">
                 <p className="text-sm text-gray-400">
                   {totalExercises} ejercicios • {selectedStudents.length} estudiantes seleccionados
                 </p>
+                {selectedDurationInfo && (
+                    <p className="text-xs text-blue-400">
+                      Duración: {selectedDurationInfo.label}
+                      {selectedDurationInfo.weeks > 0 && ` (${selectedDurationInfo.weeks} semanas)`}
+                    </p>
+                )}
               </div>
               <Button
                   onClick={handleSaveRoutine}
-                  disabled={totalExercises === 0 || !routineName || isLoading || isSaving}
-                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50"
+                  disabled={totalExercises === 0 || !routineName || !routineDuration || isLoading || isSaving}
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 text-sm lg:text-base px-3 lg:px-4"
               >
                 {isSaving ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Guardando...
+                      <span className="hidden lg:inline">Guardando...</span>
+                      <span className="lg:hidden">...</span>
                     </>
                 ) : (
-                    "Guardar y Asignar Rutina"
+                    <>
+                      <span className="hidden lg:inline">Guardar y Asignar Rutina</span>
+                      <span className="lg:hidden">Guardar</span>
+                    </>
                 )}
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="max-w mx-auto p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-100vh">
+        <div className="max-w mx-auto p-2 lg:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
             {/* Exercise Library */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 order-2 lg:order-1">
               <Card className="bg-gray-900 border-gray-800 h-full">
-                <CardHeader>
-                  <CardTitle className="text-white">Biblioteca de Ejercicios</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg">Biblioteca de Ejercicios</CardTitle>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
@@ -431,7 +570,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-100vh">
+                  <ScrollArea className="h-[300px] lg:h-[600px]">
                     {isLoading ? (
                         <div className="p-4 text-center text-gray-400">Cargando ejercicios...</div>
                     ) : errorLoadingData ? (
@@ -446,7 +585,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                               <div
                                   key={exercise.id}
                                   draggable
-                                  onDragStart={(e) => handleDragStart(e, exercise)}
+                                  onDragStart={(e) => handleDragStartFromLibrary(e, exercise)}
                                   className="p-3 bg-gray-800 rounded-lg border border-gray-700 cursor-grab hover:bg-gray-700 transition-colors"
                               >
                                 <div className="flex items-start gap-2">
@@ -460,7 +599,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                                       <span className="text-xs text-gray-400">{exercise.reps}</span>
                                     </div>
                                     <div className="flex flex-wrap gap-1 mt-2">
-                                      {exercise.muscleGroups.map((group) => (
+                                      {exercise.muscleGroups.slice(0, 2).map((group) => (
                                           <Badge
                                               key={group}
                                               variant="outline"
@@ -469,6 +608,11 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                                             {group}
                                           </Badge>
                                       ))}
+                                      {exercise.muscleGroups.length > 2 && (
+                                          <Badge variant="outline" className="text-xs border-gray-600 text-gray-400">
+                                            +{exercise.muscleGroups.length - 2}
+                                          </Badge>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -482,125 +626,201 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
             </div>
 
             {/* Weekly Routine Builder */}
-            <div className="lg:col-span-3">
-              <div className="mb-4">
-                <Input
-                    placeholder="Nombre de la rutina (ej: Rutina Principiantes Semana 1)"
-                    value={routineName}
-                    onChange={(e) => setRoutineName(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
-                />
+            <div className="lg:col-span-3 order-1 lg:order-2">
+              {/* Configuración de la rutina */}
+              <div className="mb-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="routine-name" className="text-gray-300 text-sm font-medium mb-2 block">
+                      Nombre de la rutina
+                    </Label>
+                    <Input
+                        id="routine-name"
+                        placeholder="ej: Rutina Principiantes Semana 1"
+                        value={routineName}
+                        onChange={(e) => setRoutineName(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="routine-duration" className="text-gray-300 text-sm font-medium mb-2 block">
+                      <div className="flex items-center gap-2">
+                        <Timer className="w-4 h-4 text-blue-400" />
+                        Duración de la rutina
+                      </div>
+                    </Label>
+                    <Select value={routineDuration} onValueChange={setRoutineDuration}>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectValue placeholder="Selecciona la duración" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700">
+                        {routineDurations.map((duration) => (
+                            <SelectItem
+                                key={duration.value}
+                                value={duration.value}
+                                className="text-white hover:bg-gray-700 focus:bg-gray-700"
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="font-medium">{duration.label}</span>
+
+                              </div>
+                            </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                  </div>
+                </div>
+
+
+
+
+                {/* Información móvil */}
+                <div className="lg:hidden bg-gray-800 rounded-lg p-3">
+                  <div className="text-sm text-gray-300 space-y-1">
+                    <p>{totalExercises} ejercicios agregados</p>
+                    <p>{selectedStudents.length} estudiantes seleccionados</p>
+                    {selectedDurationInfo && (
+                        <p className="text-blue-400">
+                          Duración: {selectedDurationInfo.label}
+                          {selectedDurationInfo.weeks > 0 && ` (${selectedDurationInfo.weeks} semanas)`}
+                        </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 h-100vh">
-                {daysOfWeek.map((day) => (
-                    <Card key={day.id} className="bg-gray-900 border-gray-800 flex flex-col">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-center text-white text-lg">{day.shortName}</CardTitle>
-                        <p className="text-center text-gray-400 text-sm">{day.name}</p>
-                      </CardHeader>
-                      <CardContent className="flex-1 p-3">
-                        <div
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, day.id)}
-                            className="min-h-[400px] border-2 border-dashed border-gray-700 rounded-lg p-2 hover:border-gray-600 transition-colors"
-                        >
-                          {routines[day.id].length === 0 ? (
-                              <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                <Plus className="w-8 h-8 mb-2" />
-                                <p className="text-sm text-center">Arrastra ejercicios aquí</p>
-                              </div>
-                          ) : (
-                              <ScrollArea className="h-[400px]">
-                                <div className="space-y-2">
-                                  {routines[day.id].map((exercise, index) => {
-                                    const displayValues = getDisplayValues(exercise)
-                                    return (
-                                        <div
-                                            key={exercise.id}
-                                            className="p-3 bg-gray-800 rounded-lg border border-gray-700 group relative"
-                                        >
-                                          {/* Indicador de modificación */}
-                                          {exercise.isModified && (
-                                              <div className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
-                                          )}
+              {/* Days Container with Horizontal Scroll */}
+              <div className="overflow-x-auto">
+                <div className="flex gap-3 lg:gap-4 pb-4" style={{ minWidth: "max-content" }}>
+                  {daysOfWeek.map((day) => (
+                      <div key={day.id} className="w-64 lg:w-80 flex-shrink-0">
+                        <Card className="bg-gray-900 border-gray-800 flex flex-col h-full">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-center text-white text-base lg:text-lg">{day.shortName}</CardTitle>
+                            <p className="text-center text-gray-400 text-xs lg:text-sm">{day.name}</p>
+                            <div className="text-center text-xs text-gray-500">
+                              {routines[day.id].length} ejercicio{routines[day.id].length !== 1 ? "s" : ""}
+                            </div>
+                          </CardHeader>
+                          <CardContent className="flex-1 p-2 lg:p-3">
+                            <div
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, day.id)}
+                                className="min-h-[200px] lg:min-h-[400px] border-2 border-dashed border-gray-700 rounded-lg p-2 hover:border-gray-600 transition-colors"
+                            >
+                              {routines[day.id].length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                    <Plus className="w-6 h-6 lg:w-8 lg:h-8 mb-2" />
+                                    <p className="text-xs lg:text-sm text-center">Arrastra ejercicios aquí</p>
+                                  </div>
+                              ) : (
+                                  <ScrollArea className="h-[200px] lg:h-[400px]">
+                                    <div className="space-y-2">
+                                      {routines[day.id].map((exercise, index) => {
+                                        const displayValues = getDisplayValues(exercise)
+                                        return (
+                                            <div
+                                                key={exercise.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStartFromDay(e, exercise, day.id, index)}
+                                                onDragOver={(e) => handleDragOverExercise(e, day.id, index)}
+                                                onDrop={(e) => handleDropOnExercise(e, day.id, index)}
+                                                className="p-3 bg-gray-800 rounded-lg border border-gray-700 relative group cursor-move hover:shadow-lg transition-all"
+                                            >
+                                              {/* Indicador de modificación */}
+                                              {exercise.isModified && (
+                                                  <div className="absolute top-2 left-2 w-2 h-2 bg-blue-500 rounded-full"></div>
+                                              )}
 
-                                          <div className="flex items-start justify-between">
-                                            <div className="flex-1 min-w-0">
-                                              <h4 className="font-medium text-white text-sm truncate">{exercise.name}</h4>
-                                              <div className="flex items-center gap-2 mt-1">
-                                                <Badge
-                                                    variant="secondary"
-                                                    className={`text-xs ${exercise.isModified ? "bg-blue-700 text-blue-200" : "bg-gray-700 text-gray-300"}`}
+                                              {/* Botones de acción en esquina superior derecha */}
+                                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => openEditDialog(day.id, exercise.id)}
+                                                    className="w-5 h-5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/20"
                                                 >
-                                                  {displayValues.sets} series
-                                                </Badge>
-                                                <span
-                                                    className={`text-xs ${exercise.isModified ? "text-blue-300" : "text-gray-400"}`}
+                                                  <Edit3 className="w-3 h-3" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeExercise(day.id, exercise.id)}
+                                                    className="w-5 h-5 text-gray-400 hover:text-red-400 hover:bg-red-900/20"
                                                 >
-                                          {displayValues.reps}
-                                        </span>
+                                                  <Trash2 className="w-3 h-3" />
+                                                </Button>
                                               </div>
-                                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                {displayValues.weight && (
-                                                    <div className="flex items-center gap-1">
-                                                      <Weight className="w-3 h-3" />
-                                                      <span className={exercise.isModified ? "text-blue-300" : ""}>
-                                              {displayValues.weight}
-                                            </span>
-                                                    </div>
-                                                )}
-                                                {displayValues.rest && (
-                                                    <div className="flex items-center gap-1">
-                                                      <Clock className="w-3 h-3" />
-                                                      <span className={exercise.isModified ? "text-blue-300" : ""}>
-                                              {displayValues.rest}
-                                            </span>
-                                                    </div>
-                                                )}
+
+                                              {/* Contenido del ejercicio */}
+                                              <div className="pr-12">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                  <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                                            #{index + 1}
+                                          </span>
+                                                </div>
+
+                                                <h4 className="font-medium text-white text-sm mb-2 pr-4">{exercise.name}</h4>
+
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <Badge
+                                                      variant="secondary"
+                                                      className={`text-xs ${exercise.isModified ? "bg-blue-700 text-blue-200" : "bg-gray-700 text-gray-300"}`}
+                                                  >
+                                                    {displayValues.sets} series
+                                                  </Badge>
+                                                  <span
+                                                      className={`text-xs ${exercise.isModified ? "text-blue-300" : "text-gray-400"}`}
+                                                  >
+                                            {displayValues.reps}
+                                          </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 text-xs text-gray-400">
+                                                  {displayValues.weight && (
+                                                      <div className="flex items-center gap-1">
+                                                        <Weight className="w-3 h-3" />
+                                                        <span className={exercise.isModified ? "text-blue-300" : ""}>
+                                                {displayValues.weight}
+                                              </span>
+                                                      </div>
+                                                  )}
+                                                  {displayValues.rest && (
+                                                      <div className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span className={exercise.isModified ? "text-blue-300" : ""}>
+                                                {displayValues.rest}
+                                              </span>
+                                                      </div>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => openEditDialog(day.id, exercise.id)}
-                                                  className="w-6 h-6 text-gray-400 hover:text-blue-400"
-                                              >
-                                                <Edit3 className="w-3 h-3" />
-                                              </Button>
-                                              <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => removeExercise(day.id, exercise.id)}
-                                                  className="w-6 h-6 text-gray-400 hover:text-red-400"
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                    )
-                                  })}
-                                </div>
-                              </ScrollArea>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                ))}
+                                        )
+                                      })}
+                                    </div>
+                                  </ScrollArea>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Student Assignment */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 order-3">
               <Card className="bg-gray-900 border-gray-800 h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <UserPlus className="w-5 h-5 text-purple-400" />
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-white text-lg">
+                    <UserPlus className="w-4 h-4 lg:w-5 lg:h-5 text-purple-400" />
                     Asignar a Estudiantes
                   </CardTitle>
-                  <p className="text-sm text-gray-400">Selecciona los estudiantes para esta rutina</p>
+                  <p className="text-xs lg:text-sm text-gray-400">Selecciona los estudiantes para esta rutina</p>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
@@ -612,7 +832,7 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-100vh">
+                  <ScrollArea className="h-[300px] lg:h-[600px]">
                     {isLoading ? (
                         <div className="p-4 text-center text-gray-400">Cargando estudiantes...</div>
                     ) : errorLoadingData ? (
@@ -692,9 +912,9 @@ export default function RoutineBuilder({ onBack, onLogout }: RoutineBuilderProps
 
         {/* Dialog para editar ejercicio */}
         <Dialog open={!!editingExercise} onOpenChange={closeEditDialog}>
-          <DialogContent className="bg-gray-900 border-gray-700 text-white">
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md mx-4 lg:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-white">Editar Ejercicio: {editingExercise?.exercise.name}</DialogTitle>
+              <DialogTitle className="text-white text-lg">Editar Ejercicio: {editingExercise?.exercise.name}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
