@@ -24,5 +24,14 @@ export const workoutExerciseService = {
       .insert(cleaned)
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  async getWorkoutExercise(workoutId: string) {
+    let { data: workout_exercises, error } = await supabase
+      .from('workout_exercises')
+      .select('sets_completed,reps_completed,weight_used')
+      .eq('workout_id', workoutId)
+    if (error) throw new Error(error.message);
+    return workout_exercises;
   }
 };

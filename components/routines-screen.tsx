@@ -110,6 +110,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         const weeklyRoutine = await studentRoutineService.getCurrentWeeklyRoutine(userData.id)
         if (weeklyRoutine) {
           setRoutineData(weeklyRoutine)
+         
+
         } else {
           setError("No se encontró una rutina activa")
         }
@@ -369,6 +371,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
 
       const workoutId = await workoutService.getActiveWorkout(userData.id, workoutDate, routineId, startTime)
       setWorkoutId(workoutId?.id)
+      const actualWorkoutExcercise = await workoutExerciseService.getWorkoutExercise(workoutId?.id)
+      console.log('tskk', actualWorkoutExcercise)
     }
 
     // Si es el primer ejercicio del día, iniciar el workout
