@@ -1,77 +1,91 @@
-const CACHE_NAME = "gym-app-v2"
+const CACHE_NAME = "gym-app-v3"
 const urlsToCache = [
-    "/",
-    "/static/js/bundle.js",
-    "/static/css/main.css",
     "/manifest.json",
-    "/malibu_logo.png",
     "/malibu_logo.png",
 ]
 
-// Instalar el service worker
 self.addEventListener("install", (event) => {
     event.waitUntil(
-        caches
-            .open(CACHE_NAME)
+        caches.open(CACHE_NAME)
             .then((cache) => {
-                return cache.addAll(urlsToCache)
+                return cache.addAll(urlsToCache.filter(url => url !== "/"))
             })
             .then(() => {
-                return self.skipWaiting()
-            }),
+                console.log("Service Worker installed")
+            })
     )
 })
 
-// Activar el service worker
 self.addEventListener("activate", (event) => {
     event.waitUntil(
-        caches
-            .keys()
-            .then((cacheNames) => {
+        Promise.all([
+            caches.keys().then((cacheNames) => {
                 return Promise.all(
                     cacheNames.map((cacheName) => {
                         if (cacheName !== CACHE_NAME) {
+                            console.log("Deleting old cache:", cacheName)
                             return caches.delete(cacheName)
                         }
                     }),
                 )
-            })
-            .then(() => {
-                return self.clients.claim()
             }),
+            self.clients.claim()
+        ]).then(() => {
+            console.log("Service Worker activated")
+        })
     )
 })
 
 self.addEventListener("fetch", (event) => {
     if (event.request.method !== "GET") {
-        return fetch(event.request)
+        return
     }
 
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                // Solo cachear respuestas exitosas
-                if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
-                    const responseClone = networkResponse.clone()
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone)
-                    })
+    const url = new URL(event.request.url)
+    
+    if (
+        url.pathname.startsWith("/_next/") ||
+        url.pathname.startsWith("/api/") ||
+        url.pathname.includes("webpack-hmr") ||
+        url.pathname.includes("hot-update") ||
+        url.search.includes("_rsc=") ||
+        event.request.headers.get("accept")?.includes("text/x-component") ||
+        event.request.destination === "document"
+    ) {
+        return
+    }
+
+    if (
+        url.pathname.includes(".png") ||
+        url.pathname.includes(".jpg") ||
+        url.pathname.includes(".jpeg") ||
+        url.pathname.includes(".gif") ||
+        url.pathname.includes(".svg") ||
+        url.pathname.includes(".ico") ||
+        url.pathname === "/manifest.json"
+    ) {
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse
                 }
-                return networkResponse
-            }).catch((error) => {
-                console.log("Network request failed:", error)
-                return cachedResponse 
+                
+                return fetch(event.request).then((response) => {
+                    if (response && response.status === 200) {
+                        const responseClone = response.clone()
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseClone)
+                        })
+                    }
+                    return response
+                }).catch(() => {
+                    return new Response("", { status: 404 })
+                })
             })
-            if (cachedResponse) {
-                fetchPromise.catch(() => {}) 
-                return cachedResponse
-            }
-            return fetchPromise
-        })
-    )
+        )
+    }
 })
 
-// Manejar notificaciones push
 self.addEventListener("push", (event) => {
     let notificationData = {
         title: "Gimnasio App",
@@ -106,7 +120,6 @@ self.addEventListener("push", (event) => {
     event.waitUntil(self.registration.showNotification(notificationData.title, options))
 })
 
-// Manejar clicks en notificaciones
 self.addEventListener("notificationclick", (event) => {
     event.notification.close()
 
@@ -151,15 +164,13 @@ self.addEventListener("notificationclick", (event) => {
     )
 })
 
-// Manejar cierre de notificaciones
 self.addEventListener("notificationclose", (event) => {
     const data = event.notification.data
     if (data && data.trackClose) {
-        // Aquí podrías enviar datos de analytics
+
     }
 })
 
-// Manejar mensajes desde la aplicación
 self.addEventListener("message", (event) => {
     if (event.data && event.data.type) {
         switch (event.data.type) {
@@ -178,12 +189,10 @@ self.addEventListener("message", (event) => {
     }
 })
 
-// Manejar errores
 self.addEventListener("error", (event) => {
     console.error("Service Worker: Error", event.error)
 })
 
-// Manejar errores no capturados
 self.addEventListener("unhandledrejection", (event) => {
     console.error("Service Worker: Unhandled rejection", event.reason)
 })
