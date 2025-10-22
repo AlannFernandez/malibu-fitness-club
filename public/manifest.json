@@ -110,29 +110,7 @@
       ]
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Pantalla principal de rutinas"
-    },
-    {
-      "src": "/screenshot-mobile-2.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Seguimiento de progreso"
-    },
-    {
-      "src": "/screenshot-desktop-1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard del profesor"
-    }
-  ],
+  "screenshots": [],
   "related_applications": [],
   "prefer_related_applications": false,
   "protocol_handlers": [
@@ -144,6 +122,7 @@
   "share_target": {
     "action": "/share",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",

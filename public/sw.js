@@ -1,4 +1,4 @@
-const CACHE_NAME = "gym-app-v3"
+const CACHE_NAME = "gym-app-v4"
 const urlsToCache = [
     "/manifest.json",
     "/malibu_logo.png",
@@ -50,20 +50,13 @@ self.addEventListener("fetch", (event) => {
         url.pathname.includes("hot-update") ||
         url.search.includes("_rsc=") ||
         event.request.headers.get("accept")?.includes("text/x-component") ||
-        event.request.destination === "document"
+        event.request.destination === "document" ||
+        event.request.mode === "navigate"
     ) {
         return
     }
 
-    if (
-        url.pathname.includes(".png") ||
-        url.pathname.includes(".jpg") ||
-        url.pathname.includes(".jpeg") ||
-        url.pathname.includes(".gif") ||
-        url.pathname.includes(".svg") ||
-        url.pathname.includes(".ico") ||
-        url.pathname === "/manifest.json"
-    ) {
+    if (url.pathname === "/manifest.json" || url.pathname.includes(".png")) {
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => {
                 if (cachedResponse) {
