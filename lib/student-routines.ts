@@ -1,5 +1,45 @@
 import {supabase} from "./supabase"
 
+// Interfaces para los datos de Supabase
+interface SupabaseExercise {
+    id: string
+    name: string
+    description: string
+    category: string
+    difficulty: string
+    equipment: string
+    muscle_groups: string[]
+    sets_suggested: string
+    reps_suggested: string
+    rest_time: string
+    notes?: string
+}
+
+interface SupabaseRoutineExercise {
+    id: string
+    exercise_id: string
+    day_of_week: number
+    order_in_day: number
+    sets_override?: string
+    reps_override?: string
+    weight_override?: string
+    rest_override?: string
+    exercises: SupabaseExercise
+}
+
+interface SupabaseRoutine {
+    id: string
+    name: string
+    created_at: string
+    created_by: string
+    routine_exercises: SupabaseRoutineExercise[]
+}
+
+interface SupabaseStudentRoutine {
+    routine_id: string
+    routines: SupabaseRoutine
+}
+
 export interface StudentRoutineExercise {
     id: string
     exercise_id: string
@@ -65,31 +105,21 @@ export interface WeeklyRoutine {
 
 class StudentRoutineService {
     /**
-     * Verificar si el usuario tiene membresía activa o pendiente
+     * Verificar si el usuario tiene membresía activa o pendiente (Optimizado)
      */
     async checkMembershipStatus(userId: string): Promise<boolean> {
         try {
-            const {data, error} = await supabase
+            const currentDate = new Date().toISOString().split("T")[0]
+            
+            const { data, error } = await supabase
                 .from("memberships")
-                .select("*")
+                .select("id")
                 .eq("user_id", userId)
                 .in("status", ["active", "pending"])
+                .gte("end_date", currentDate)
+                .limit(1)
 
-            if (error) {
-                return false
-            }
-
-            if (!data || data.length === 0) {
-                return false
-            }
-
-            const currentDate = new Date().toISOString().split("T")[0]
-            const activeMembership = data.find((membership) => {
-                const endDate = membership.end_date
-                return endDate >= currentDate
-            })
-
-            return !!activeMembership
+            return !error && data && data.length > 0
         } catch (error) {
             return false
         }
@@ -177,78 +207,108 @@ class StudentRoutineService {
     }
 
     /**
-     * Función principal: Seguir el flujo completo
+     * Función principal optimizada: Una sola consulta con JOINs
      */
     async getStudentRoutines(studentId: string): Promise<StudentRoutine[]> {
         try {
-            // Verificar membresía
-            const hasMembership = await this.checkMembershipStatus(studentId)
-            if (!hasMembership) {
+            const { data, error } = await supabase
+                .from("student_routines")
+                .select(`
+                    routine_id,
+                    routines!inner (
+                        id,
+                        name,
+                        created_at,
+                        created_by,
+                        routine_exercises!inner (
+                            id,
+                            exercise_id,
+                            day_of_week,
+                            order_in_day,
+                            sets_override,
+                            reps_override,
+                            weight_override,
+                            rest_override,
+                            exercises!inner (
+                                id,
+                                name,
+                                description,
+                                category,
+                                difficulty,
+                                equipment,
+                                muscle_groups,
+                                sets_suggested,
+                                reps_suggested,
+                                rest_time,
+                                notes
+                            )
+                        )
+                    )
+                `)
+                .eq("student_id", studentId)
+                .eq("is_active", true)
+
+            if (error || !data || data.length === 0) {
+                console.error("Error getting student routines:", error)
                 return []
             }
 
-            // Buscar rutina activa
-            const activeStudentRoutine = await this.getActiveStudentRoutine(studentId)
-            if (!activeStudentRoutine) {
-                return []
-            }
-
-            // Obtener ejercicios de la rutina
-            const routineExercises = await this.getRoutineExercises(activeStudentRoutine.routine_id)
-            if (routineExercises.length === 0) {
-                return []
-            }
-
-            // Obtener detalles de cada ejercicio
-            const exercisesWithDetails: StudentRoutineExercise[] = []
-
-            for (const routineExercise of routineExercises) {
-                const exerciseDetails = await this.getExerciseDetails(routineExercise.exercise_id)
-
-                if (exerciseDetails) {
-                    exercisesWithDetails.push({
-                        id: routineExercise.id,
-                        exercise_id: routineExercise.exercise_id,
-                        routine_id: routineExercise.routine_id,
-                        day_of_week: routineExercise.day_of_week,
-                        order_in_day: routineExercise.order_in_day,
-                        sets_override: routineExercise.sets_override,
-                        reps_override: routineExercise.reps_override,
-                        weight_override: routineExercise.weight_override,
-                        rest_override: routineExercise.rest_override,
-                        exercise: {
-                            id: exerciseDetails.id,
-                            name: exerciseDetails.name,
-                            description: exerciseDetails.description,
-                            category: exerciseDetails.category,
-                            difficulty: exerciseDetails.difficulty,
-                            equipment: exerciseDetails.equipment,
-                            muscle_groups: exerciseDetails.muscle_groups || [],
-                            sets_suggested: exerciseDetails.sets_suggested || "3",
-                            reps_suggested: exerciseDetails.reps_suggested || "12",
-                            rest_time: exerciseDetails.rest_time || "60s",
-                            notes: exerciseDetails.notes,
-                        },
-                    })
+            return data.map((studentRoutine: any) => {
+                const routine = studentRoutine.routines
+                
+                if (!routine || !routine.routine_exercises || !Array.isArray(routine.routine_exercises)) {
+                    console.warn("Rutina sin ejercicios válidos:", studentRoutine)
+                    return {
+                        id: routine?.id || "",
+                        name: routine?.name || "Rutina sin nombre",
+                        created_at: routine?.created_at || "",
+                        created_by: routine?.created_by || "",
+                        exercises: []
+                    }
                 }
-            }
+                
+                const sortedRoutineExercises = routine.routine_exercises.sort((a: SupabaseRoutineExercise, b: SupabaseRoutineExercise) => {
+                    if (a.day_of_week !== b.day_of_week) {
+                        return a.day_of_week - b.day_of_week
+                    }
+                    return a.order_in_day - b.order_in_day
+                })
+                
+                const exercises: StudentRoutineExercise[] = sortedRoutineExercises.map((re: SupabaseRoutineExercise) => ({
+                    id: re.id,
+                    exercise_id: re.exercise_id,
+                    routine_id: routine.id,
+                    day_of_week: re.day_of_week,
+                    order_in_day: re.order_in_day,
+                    sets_override: re.sets_override,
+                    reps_override: re.reps_override,
+                    weight_override: re.weight_override,
+                    rest_override: re.rest_override,
+                    exercise: {
+                        id: re.exercises.id,
+                        name: re.exercises.name,
+                        description: re.exercises.description,
+                        category: re.exercises.category,
+                        difficulty: re.exercises.difficulty,
+                        equipment: re.exercises.equipment,
+                        muscle_groups: re.exercises.muscle_groups || [],
+                        sets_suggested: re.exercises.sets_suggested || "3",
+                        reps_suggested: re.exercises.reps_suggested || "12",
+                        rest_time: re.exercises.rest_time || "60s",
+                        notes: re.exercises.notes,
+                    }
+                }))
 
-            // Obtener detalles de la rutina
-            const routineDetails = await this.getRoutineDetails(activeStudentRoutine.routine_id)
-            if (!routineDetails) {
-                return []
-            }
-
-            const finalRoutine: StudentRoutine = {
-                id: routineDetails.id,
-                name: routineDetails.name,
-                created_at: routineDetails.created_at,
-                created_by: routineDetails.created_by,
-                exercises: exercisesWithDetails,
-            }
-
-            return [finalRoutine]
+                return {
+                    id: routine.id,
+                    name: routine.name,
+                    created_at: routine.created_at,
+                    created_by: routine.created_by,
+                    exercises
+                }
+            }).filter(routine => routine.id) // Filtrar rutinas inválidas
         } catch (error) {
+            console.error("Error getting student routines:", error)
             return []
         }
     }
@@ -280,23 +340,21 @@ class StudentRoutineService {
 
             const dayKeys = [ "lun", "mar", "mie", "jue", "vie", "sab","dom"]
 
-            // Agrupar ejercicios por día
-            const exercisesByDay: { [key: number]: StudentRoutineExercise[] } = {}
+            const exercisesByDay = new Map<number, StudentRoutineExercise[]>()
 
             currentRoutine.exercises.forEach((exercise) => {
-                if (!exercisesByDay[exercise.day_of_week]) {
-                    exercisesByDay[exercise.day_of_week] = []
+                if (!exercisesByDay.has(exercise.day_of_week)) {
+                    exercisesByDay.set(exercise.day_of_week, [])
                 }
-                exercisesByDay[exercise.day_of_week].push(exercise)
+                exercisesByDay.get(exercise.day_of_week)!.push(exercise)
             })
 
             // Procesar cada día
-            Object.keys(exercisesByDay).forEach((dayNum) => {
-                const dayIndex = Number.parseInt(dayNum)
+            exercisesByDay.forEach((exercises, dayIndex) => {
                 const dayKey = dayKeys[dayIndex] as keyof WeeklyRoutine
 
                 if (dayKey && weeklyRoutine[dayKey]) {
-                    const dayExercises = exercisesByDay[dayIndex]
+                    const dayExercises = exercises
                         .sort((a, b) => a.order_in_day - b.order_in_day)
                         .map((re) => ({
                             id: re.id,
