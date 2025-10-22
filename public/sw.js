@@ -1,4 +1,4 @@
-const CACHE_NAME = "gym-app-v1"
+const CACHE_NAME = "gym-app-v2"
 const urlsToCache = [
     "/",
     "/static/js/bundle.js",
@@ -42,15 +42,32 @@ self.addEventListener("activate", (event) => {
     )
 })
 
-// Interceptar requests
 self.addEventListener("fetch", (event) => {
+    if (event.request.method !== "GET") {
+        return fetch(event.request)
+    }
+
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            if (response) {
-                return response
+        caches.match(event.request).then((cachedResponse) => {
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                // Solo cachear respuestas exitosas
+                if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+                    const responseClone = networkResponse.clone()
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseClone)
+                    })
+                }
+                return networkResponse
+            }).catch((error) => {
+                console.log("Network request failed:", error)
+                return cachedResponse 
+            })
+            if (cachedResponse) {
+                fetchPromise.catch(() => {}) 
+                return cachedResponse
             }
-            return fetch(event.request)
-        }),
+            return fetchPromise
+        })
     )
 })
 
