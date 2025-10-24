@@ -699,7 +699,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                       variant="ghost"
                       size="icon"
                       onClick={() => navigateDay("prev")}
-                      className="text-gray-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-400 hover:bg-transparent focus:bg-transparent active:bg-transparent"
                       disabled={isLoading}
                   >
                     <ChevronLeft className="w-5 h-5" />
@@ -734,7 +734,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                       variant="ghost"
                       size="icon"
                       onClick={() => navigateDay("next")}
-                      className="text-gray-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-400 hover:bg-transparent focus:bg-transparent active:bg-transparent"
                       disabled={isLoading}
                   >
                     <ChevronRight className="w-5 h-5" />
