@@ -42,27 +42,37 @@ self.addEventListener("activate", (event) => {
     )
 })
 
-self.addEventListener("fetch", (event) => {
-    if (event.request.method !== "GET") {
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') {
         return
     }
 
     const url = new URL(event.request.url)
     
+    // Para navegación principal (recarga de página)
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    return caches.match('/offline.html')
+                })
+        )
+        return
+    }
+
+    // No interceptar solicitudes a la API o recursos específicos
     if (
-        url.pathname.startsWith("/_next/") ||
-        url.pathname.startsWith("/api/") ||
-        url.pathname.includes("webpack-hmr") ||
-        url.pathname.includes("hot-update") ||
-        url.search.includes("_rsc=") ||
-        event.request.headers.get("accept")?.includes("text/x-component") ||
-        event.request.destination === "document" ||
-        event.request.mode === "navigate"
+        url.pathname.startsWith('/_next/') ||
+        url.pathname.startsWith('/api/') ||
+        url.pathname.includes('webpack-hmr') ||
+        url.pathname.includes('hot-update') ||
+        url.search.includes('_rsc=') ||
+        event.request.headers.get('accept')?.includes('text/x-component')
     ) {
         return
     }
 
-    if (url.pathname === "/manifest.json" || url.pathname.includes(".png")) {
+    if (url.pathname === '/manifest.json' || url.pathname.includes('.png')) {
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => {
                 if (cachedResponse) {
@@ -78,7 +88,7 @@ self.addEventListener("fetch", (event) => {
                     }
                     return response
                 }).catch(() => {
-                    return new Response("", { status: 404 })
+                    return new Response('', { status: 404 })
                 })
             })
         )

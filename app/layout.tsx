@@ -69,17 +69,34 @@ export default function RootLayout({
       <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                let refreshing = false;
-                
+              // Variable para detectar si estamos en un bucle de carga
+              let loadAttempts = sessionStorage.getItem('loadAttempts') || 0;
+              loadAttempts = parseInt(loadAttempts) + 1;
+              sessionStorage.setItem('loadAttempts', loadAttempts);
+              
+              // Si detectamos demasiados intentos de carga, desactivamos el Service Worker
+              if (loadAttempts > 3) {
+                console.log('Detectado posible bucle de carga, desactivando Service Worker temporalmente');
+                sessionStorage.setItem('disableSW', 'true');
+                // Reiniciar contador después de 10 segundos
+                setTimeout(() => {
+                  sessionStorage.removeItem('loadAttempts');
+                  sessionStorage.removeItem('disableSW');
+                }, 10000);
+              }
+              
+              if ('serviceWorker' in navigator && sessionStorage.getItem('disableSW') !== 'true') {
                 // Evitar múltiples recargas
+                let refreshing = false;
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
                   if (!refreshing) {
                     refreshing = true;
-                    window.location.reload();
+                    // No recargar automáticamente para evitar bucles
+                    console.log('Service Worker actualizado, no se recargará automáticamente');
                   }
                 });
                 
+                // Registrar el Service Worker después de que la página esté completamente cargada
                 window.addEventListener('load', function() {
                   // Usar un timeout para evitar bloqueos en la carga inicial
                   setTimeout(() => {
@@ -88,11 +105,23 @@ export default function RootLayout({
                       updateViaCache: 'none'
                     }).then(function(registration) {
                       console.log('SW registered: ', registration);
+                      // Reiniciar contador de intentos de carga
+                      sessionStorage.setItem('loadAttempts', '0');
                     }).catch(function(registrationError) {
                       console.log('SW registration failed: ', registrationError);
                     });
-                  }, 1000);
+                  }, 2000);
                 });
+              } else if (sessionStorage.getItem('disableSW') === 'true') {
+                console.log('Service Worker desactivado temporalmente para evitar bucles de carga');
+                // Intentar desregistrar Service Workers existentes
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                      registration.unregister();
+                    }
+                  });
+                }
               }
             `,
           }}
