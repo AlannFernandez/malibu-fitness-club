@@ -1,4 +1,4 @@
-import type React from "react"
+import  React, {useEffect} from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
@@ -50,6 +50,56 @@ export default function RootLayout({
                                    }: {
   children: React.ReactNode
 }) {
+  // Solución de emergencia para el problema de carga infinita
+  useEffect(() => {
+    // Desregistrar cualquier Service Worker existente
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Service Worker desregistrado');
+        }
+      });
+
+      // Limpiar todas las caches
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+            console.log(`Cache ${cacheName} eliminada`);
+          });
+        });
+      }
+    }
+    
+    // Solución para el problema de carga infinita
+    const handleBeforeUnload = () => {
+      // Limpiar el estado de la sesión al recargar
+      sessionStorage.removeItem('loadingState');
+    };
+    
+    // Verificar si estamos en un bucle de carga
+    const loadingAttempts = parseInt(sessionStorage.getItem('loadingAttempts') || '0');
+    if (loadingAttempts > 3) {
+      // Resetear el contador después de 3 intentos
+      sessionStorage.removeItem('loadingAttempts');
+      // Forzar una recarga limpia
+      window.location.reload();
+    } else {
+      // Incrementar el contador de intentos
+      sessionStorage.setItem('loadingAttempts', (loadingAttempts + 1).toString());
+      // Establecer un timeout para resetear el contador
+      setTimeout(() => {
+        sessionStorage.removeItem('loadingAttempts');
+      }, 5000);
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
   return (
       <html lang="es">
       <head>

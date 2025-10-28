@@ -31,20 +31,47 @@ export default function GymApp() {
 
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const verifySession = async () => {
       try {
-        const { user, userData: currentUserData } = await authService.getCurrentUser();
+        // Establecer un tiempo máximo para la carga
+        const timeoutPromise = new Promise<void>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error("Timeout al verificar la sesión"));
+          }, 5000); // 5 segundos máximo para cargar
+        });
 
+        // Intentar obtener los datos del usuario con un límite de tiempo
+        const userPromise = authService.getCurrentUser();
+        
+        // Usar Promise.race para limitar el tiempo de espera
+        const { user, userData: currentUserData } = await Promise.race([
+          userPromise,
+          timeoutPromise.then(() => ({ user: null, userData: null }))
+        ]) as any;
+
+        clearTimeout(timeoutId);
         if (!isMounted) return;
 
         if (user && currentUserData) {
           setUserData(currentUserData);
 
           if (currentUserData.role === "student") {
-            const membershipStatus = await authService.checkMembershipStatus(user.id);
-            if (!isMounted) return;
-            setUserStatus(membershipStatus === "active" ? "logged-in-active" : "logged-in-expired");
+            try {
+              const membershipStatus = await Promise.race([
+                authService.checkMembershipStatus(user.id),
+                new Promise<string>((_, reject) => {
+                  setTimeout(() => reject(new Error("Timeout al verificar membresía")), 3000);
+                })
+              ]);
+              
+              if (!isMounted) return;
+              setUserStatus(membershipStatus === "active" ? "logged-in-active" : "logged-in-expired");
+            } catch (error) {
+              console.error("Error o timeout al verificar membresía:", error);
+              if (isMounted) setUserStatus("logged-in-active"); // Asumimos activo por defecto
+            }
           } else {
             setUserStatus("logged-in-active");
           }
@@ -57,7 +84,10 @@ export default function GymApp() {
       }
     };
 
-    verifySession();
+    // Añadir un pequeño retraso antes de verificar la sesión
+    setTimeout(() => {
+      if (isMounted) verifySession();
+    }, 500);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
@@ -73,6 +103,7 @@ export default function GymApp() {
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
