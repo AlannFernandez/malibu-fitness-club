@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/malibu_logo.png", sizes: "16x16", type: "image/png" },
-      { url: "/malibu_logo.png", sizes: "32x32", type: "image/png" },
-      { url: "/malibu_logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/ios/16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/ios/32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/android/android-launchericon-192-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: [{ url: "/malibu_logo.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/icons/ios/180.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
@@ -55,7 +55,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/malibu_logo.png" />
+        <link rel="apple-touch-icon" href="/icons/ios/180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Gym App" />
@@ -70,26 +70,28 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
+                let refreshing = false;
+                
+                // Evitar múltiples recargas
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                });
+                
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js', {
-                    updateViaCache: 'none'
-                  }).then(function(registration) {
-                    console.log('SW registered: ', registration);
-                    
-                    registration.addEventListener('updatefound', function() {
-                      const newWorker = registration.installing;
-                      if (newWorker) {
-                        newWorker.addEventListener('statechange', function() {
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            console.log('New SW available, reloading...');
-                            window.location.reload();
-                          }
-                        });
-                      }
+                  // Usar un timeout para evitar bloqueos en la carga inicial
+                  setTimeout(() => {
+                    navigator.serviceWorker.register('/sw.js', {
+                      scope: '/',
+                      updateViaCache: 'none'
+                    }).then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    }).catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
                     });
-                  }).catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
-                  });
+                  }, 1000);
                 });
               }
             `,

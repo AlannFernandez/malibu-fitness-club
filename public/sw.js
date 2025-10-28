@@ -1,7 +1,13 @@
-const CACHE_NAME = "gym-app-v4"
+const CACHE_NAME = "gym-app-v5"
 const urlsToCache = [
     "/manifest.json",
     "/malibu_logo.png",
+    "/icons/android/android-launchericon-192-192.png",
+    "/icons/android/android-launchericon-512-512.png",
+    "/icons/ios/16.png",
+    "/icons/ios/32.png",
+    "/icons/ios/180.png",
+    "/offline.html"
 ]
 
 self.addEventListener("install", (event) => {

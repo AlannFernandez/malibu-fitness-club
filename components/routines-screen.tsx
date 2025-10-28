@@ -35,9 +35,11 @@ import {
 import ProgressScreen from "./progress-screen"
 import ProfileScreen from "./profile-screen"
 import SettingsScreen from "./settings-screen"
-import { studentRoutineService, type WeeklyRoutine } from "@/lib/student-routines"
+import { studentRoutineService, type WeeklyRoutine, type DayRoutine } from "@/lib/student-routines"
+import { formatDateTime, parseRestTime, getFirstRoutineId } from "@/lib/routine-utils"
 import { workoutService } from "@/lib/workout"
 import { WorkoutExercise, workoutExerciseService } from "@/lib/workout-excercise"
+import SetCompletionDialog from "./routines/SetCompletionDialog"
 const daysOfWeek = [
   { id: "lun", name: "LUN", fullName: "Lunes" },
   { id: "mar", name: "MAR", fullName: "Martes" },
@@ -142,21 +144,6 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   const isCurrentDay = selectedDay === todayId
   const isViewingMode = !isCurrentDay
 
-  // Función para parsear tiempo de descanso a segundos
-  const parseRestTime = (restString: string): number => {
-    const cleanRest = restString.toLowerCase().replace(/\s/g, "")
-
-    if (cleanRest.includes("min")) {
-      const minutes = Number.parseFloat(cleanRest.replace(/[^0-9.-]/g, ""))
-      return Math.floor(minutes * 60)
-    } else if (cleanRest.includes("s")) {
-      return Number.parseInt(cleanRest.replace(/[^0-9]/g, ""))
-    } else {
-      // Si no tiene unidad, asumir segundos
-      const num = Number.parseInt(cleanRest.replace(/[^0-9]/g, ""))
-      return isNaN(num) ? 120 : num // default 2 minutos
-    }
-  }
 
   // Función para verificar si todos los ejercicios del día están completados
   const areAllExercisesCompleted = () => {
@@ -188,7 +175,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
       day: activeWorkoutDay,
       status: "completed",
     })
-    await workoutService.updateWorkout(workoutId, {end_time: endTime, status:'completed'})
+    await workoutService.updateWorkout(workoutId, { end_time: endTime.toISOString(), status: 'completed', total_time: totalWorkoutTime })
 
     // Simular llamada a Supabase para actualizar el workout
     console.log("📝 Actualizando workout en Supabase:", {
@@ -209,7 +196,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
 
   // Efecto para el cronómetro de descanso
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
+    let interval: ReturnType<typeof setInterval> | null = null
 
     if (isResting && restTimer > 0) {
       interval = setInterval(() => {
@@ -249,13 +236,14 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
 
       // Inicializar progreso para todos los días
       if (routineData) {
-        Object.entries(routineData).forEach(([dayKey, dayRoutine]) => {
-          dayRoutine.exercises.forEach((exercise) => {
+        const entries = Object.entries(routineData) as [string, DayRoutine][]
+        entries.forEach(([dayKey, dayRoutine]) => {
+          dayRoutine.exercises.forEach((exercise: DayRoutine["exercises"][number]) => {
             const totalSets = Number.parseInt(exercise.sets) || 3
             const exerciseKey = `${dayKey}-${exercise.id}`
 
             progress[exerciseKey] = {
-              exerciseId: exercise.exercise_id,
+              exerciseId: exercise.id,
               dayId: dayKey,
               status: "not_started",
               currentSet: 0,
@@ -310,36 +298,24 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
       return
     }
 
-    // No permitir iniciar si hay un ejercicio en descanso
-    if (isAnyExerciseActive() && !restingExerciseId) {
+    // Bloquear si hay otro ejercicio en progreso distinto al actual
+    const exerciseKeyCandidate = `${selectedDay}-${exerciseId}`
+    const anotherExerciseInProgress = Object.entries(exerciseProgress).some(([key, prog]) => prog.status === 'in_progress' && key !== exerciseKeyCandidate)
+    if (anotherExerciseInProgress) {
+      return
+    }
+
+    // Bloquear si hay descanso de otro ejercicio distinto al actual
+    if (isAnyExerciseActive() && restingExerciseId && restingExerciseId !== exerciseKeyCandidate) {
       return
     }
 
     const now = new Date()
     const exerciseKey = `${selectedDay}-${exerciseId}`
 
-    function formatDateTime(date: Date): string {
-      const pad = (n: number) => n.toString().padStart(2, "0")
-      const yyyy = date.getFullYear()
-      const mm = pad(date.getMonth() + 1)
-      const dd = pad(date.getDate())
-      const hh = pad(date.getHours())
-      const min = pad(date.getMinutes())
-      const ss = pad(date.getSeconds())
-      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
-    }
 
-    const getFirstRoutineId = (weeklyRoutine: Record<string, any>) => {
-      for (const dayKey in weeklyRoutine) {
-        const dayRoutine = weeklyRoutine[dayKey]
-        if (dayRoutine && dayRoutine.routine_id) {
-          return dayRoutine.routine_id
-        }
-      }
-      return null
-    }
-
-    const saveWorkout = async ({ workoutDate, startTime, status, routineId }) => {
+    type SaveWorkoutArgs = { workoutDate: string; startTime: string; status: string; routineId: string | null }
+    const saveWorkout = async ({ workoutDate, startTime, status, routineId }: SaveWorkoutArgs) => {
       console.log("🚀 INICIANDO WORKOUT:", {
         userId: userData.id,
         workoutDate,
@@ -367,8 +343,10 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         routine_id: routineId,
       })
 
-      const workoutId = await workoutService.getActiveWorkout(userData.id, workoutDate, routineId, startTime)
-      setWorkoutId(workoutId?.id)
+      if (routineId) {
+        const workoutId = await workoutService.getActiveWorkout(userData.id, workoutDate, routineId, startTime)
+        setWorkoutId(workoutId?.id)
+      }
     }
 
     // Si es el primer ejercicio del día, iniciar el workout
@@ -560,8 +538,8 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
   // Función para reiniciar un ejercicio
   const resetExercise = (exerciseId: string) => {
     const exerciseKey = `${selectedDay}-${exerciseId}`
-    const totalSets = Number.parseInt(currentRoutine.exercises.find((ex) => ex.id === exerciseId)?.sets || "3")
-    const exercise = currentRoutine.exercises.find((ex) => ex.id === exerciseId)
+    const totalSets = Number.parseInt(currentRoutine.exercises.find((ex: DayRoutine["exercises"][number]) => ex.id === exerciseId)?.sets || "3")
+    const exercise = currentRoutine.exercises.find((ex: DayRoutine["exercises"][number]) => ex.id === exerciseId)
 
     setExerciseProgress((prev) => ({
       ...prev,
@@ -758,7 +736,7 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
                                 Object.entries(routineData)
                                     .map(([dayKey, dayRoutine]) => {
                                       const exercise = dayRoutine.exercises.find(
-                                          (ex) => `${dayKey}-${ex.id}` === restingExerciseId,
+                                          (ex: DayRoutine["exercises"][number]) => `${dayKey}-${ex.id}` === restingExerciseId,
                                       )
                                       return exercise ? exercise.name : null
                                     })
@@ -1086,100 +1064,16 @@ export default function RoutinesScreen({ onLogout, userData }: RoutinesScreenPro
         {renderMainContent()}
 
         {/* Set Completion Dialog */}
-        <Dialog open={showSetDialog} onOpenChange={setShowSetDialog}>
-          <DialogContent className="bg-gray-900 border-gray-700 text-white">
-            <DialogHeader>
-              <DialogTitle className="text-white">
-                {activeExerciseId && routineData && (
-                    <>
-                      {/* Buscar el ejercicio correcto basado en la clave */}
-                      {
-                        Object.entries(routineData)
-                            .map(([dayKey, dayRoutine]) => {
-                              const exercise = dayRoutine.exercises.find((ex) => `${dayKey}-${ex.id}` === activeExerciseId)
-                              return exercise
-                                  ? `${exercise.name} - Serie ${(exerciseProgress[activeExerciseId]?.currentSet || 0) + 1}`
-                                  : null
-                            })
-                            .filter(Boolean)[0]
-                      }
-                    </>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="set-weight" className="text-gray-300">
-                    Peso utilizado
-                  </Label>
-                  <Input
-                      id="set-weight"
-                      value={currentSetData.weight}
-                      onChange={(e) => setCurrentSetData((prev) => ({ ...prev, weight: e.target.value }))}
-                      placeholder="ej: 80kg"
-                      className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="set-reps" className="text-gray-300">
-                    Repeticiones realizadas
-                  </Label>
-                  <Input
-                      id="set-reps"
-                      value={currentSetData.reps}
-                      onChange={(e) => setCurrentSetData((prev) => ({ ...prev, reps: e.target.value }))}
-                      placeholder="ej: 10"
-                      className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-              </div>
-
-              {activeExerciseId && exerciseProgress[activeExerciseId] && (
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <p className="text-sm text-gray-400 mb-2">Progreso del ejercicio:</p>
-                    <div className="text-xs text-gray-500">
-                      <p>
-                        Serie actual: {(exerciseProgress[activeExerciseId].currentSet || 0) + 1} de{" "}
-                        {exerciseProgress[activeExerciseId].sets.length}
-                      </p>
-                      <p>Series completadas: {exerciseProgress[activeExerciseId].sets.filter((s) => s.completed).length}</p>
-                      <p className="text-orange-400 mt-1">
-                        Descanso después de esta serie:{" "}
-                        {routineData &&
-                            Object.entries(routineData)
-                                .map(([dayKey, dayRoutine]) => {
-                                  const exercise = dayRoutine.exercises.find((ex) => `${dayKey}-${ex.id}` === activeExerciseId)
-                                  return exercise ? exercise.rest : null
-                                })
-                                .filter(Boolean)[0]}
-                      </p>
-                    </div>
-                  </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <Button
-                  variant="outline"
-                  onClick={() => setShowSetDialog(false)}
-                  className="border-gray-600 text-gray-300 bg-transparent"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancelar
-              </Button>
-              <Button
-                  onClick={completeSet}
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={!currentSetData.weight || !currentSetData.reps}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Completar Serie
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <SetCompletionDialog
+          open={showSetDialog}
+          onOpenChange={setShowSetDialog}
+          routineData={routineData}
+          activeExerciseId={activeExerciseId}
+          currentSetData={currentSetData}
+          onChangeWeight={(v) => setCurrentSetData((prev) => ({ ...prev, weight: v }))}
+          onChangeReps={(v) => setCurrentSetData((prev) => ({ ...prev, reps: v }))}
+          onCompleteSet={completeSet}
+        />
 
         {/* Bottom Tab Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-2 z-50">
